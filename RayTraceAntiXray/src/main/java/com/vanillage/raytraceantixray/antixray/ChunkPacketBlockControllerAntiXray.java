@@ -1,14 +1,14 @@
 package com.vanillage.raytraceantixray.antixray;
 
-import com.destroystokyo.paper.PaperWorldConfig;
 import com.destroystokyo.paper.antixray.BitStorageReader;
 import com.destroystokyo.paper.antixray.BitStorageWriter;
 import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
-import com.destroystokyo.paper.antixray.ChunkPacketBlockControllerAntiXray.EngineMode;
 import com.destroystokyo.paper.antixray.ChunkPacketInfo;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
 
+import io.papermc.paper.configuration.WorldConfiguration;
+import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
@@ -39,6 +39,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     public static final Palette<BlockState> GLOBAL_BLOCKSTATE_PALETTE = new GlobalPalette<>(Block.BLOCK_STATE_REGISTRY);
     private static final LevelChunkSection EMPTY_SECTION = null;
     private final RayTraceAntiXray plugin;
+    private final ChunkPacketBlockController oldController;
     private final Executor executor;
     private final EngineMode engineMode;
     private final int maxBlockHeight;
@@ -48,26 +49,33 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     private final BlockState[] presetBlockStates;
     private final BlockState[] presetBlockStatesFull;
     private final BlockState[] presetBlockStatesStone;
+    private final BlockState[] presetBlockStatesDeepslate;
     private final BlockState[] presetBlockStatesNetherrack;
     private final BlockState[] presetBlockStatesEndStone;
     private final int[] presetBlockStateBitsGlobal;
     private final int[] presetBlockStateBitsStoneGlobal;
+    private final int[] presetBlockStateBitsDeepslateGlobal;
     private final int[] presetBlockStateBitsNetherrackGlobal;
     private final int[] presetBlockStateBitsEndStoneGlobal;
     public final boolean[] solidGlobal = new boolean[Block.BLOCK_STATE_REGISTRY.size()];
     private final boolean[] obfuscateGlobal = new boolean[Block.BLOCK_STATE_REGISTRY.size()];
     private final boolean[] traceGlobal;
     private final LevelChunkSection[] emptyNearbyChunkSections = {EMPTY_SECTION, EMPTY_SECTION, EMPTY_SECTION, EMPTY_SECTION};
+    public final boolean rayTraceThirdPerson;
+    public final double rayTraceDistance;
     private final int maxBlockHeightUpdatePosition;
 
-    public ChunkPacketBlockControllerAntiXray(RayTraceAntiXray plugin, int maxRayTraceBlockCountPerChunk, Iterable<? extends String> toTrace, Level level, Executor executor) {
+    public ChunkPacketBlockControllerAntiXray(RayTraceAntiXray plugin, ChunkPacketBlockController oldController, boolean rayTraceThirdPerson, double rayTraceDistance, int maxRayTraceBlockCountPerChunk, Iterable<? extends String> toTrace, Level level, Executor executor) {
         this.plugin = plugin;
+        this.oldController = oldController;
         this.executor = executor;
-        PaperWorldConfig paperWorldConfig = level.paperConfig;
+        WorldConfiguration.Anticheat.AntiXray paperWorldConfig = level.paperConfig().anticheat.antiXray;
         engineMode = paperWorldConfig.engineMode;
         maxBlockHeight = paperWorldConfig.maxBlockHeight >> 4 << 4;
         updateRadius = paperWorldConfig.updateRadius;
         usePermission = paperWorldConfig.usePermission;
+        this.rayTraceThirdPerson = rayTraceThirdPerson;
+        this.rayTraceDistance = rayTraceDistance;
         this.maxRayTraceBlockCountPerChunk = maxRayTraceBlockCountPerChunk;
         List<String> toObfuscate;
 
@@ -76,10 +84,12 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             presetBlockStates = null;
             presetBlockStatesFull = null;
             presetBlockStatesStone = new BlockState[]{Blocks.STONE.defaultBlockState()};
+            presetBlockStatesDeepslate = new BlockState[]{Blocks.DEEPSLATE.defaultBlockState()};
             presetBlockStatesNetherrack = new BlockState[]{Blocks.NETHERRACK.defaultBlockState()};
             presetBlockStatesEndStone = new BlockState[]{Blocks.END_STONE.defaultBlockState()};
             presetBlockStateBitsGlobal = null;
             presetBlockStateBitsStoneGlobal = new int[]{GLOBAL_BLOCKSTATE_PALETTE.idFor(Blocks.STONE.defaultBlockState())};
+            presetBlockStateBitsDeepslateGlobal = new int[]{GLOBAL_BLOCKSTATE_PALETTE.idFor(Blocks.DEEPSLATE.defaultBlockState())};
             presetBlockStateBitsNetherrackGlobal = new int[]{GLOBAL_BLOCKSTATE_PALETTE.idFor(Blocks.NETHERRACK.defaultBlockState())};
             presetBlockStateBitsEndStoneGlobal = new int[]{GLOBAL_BLOCKSTATE_PALETTE.idFor(Blocks.END_STONE.defaultBlockState())};
         } else {
@@ -102,6 +112,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             presetBlockStates = presetBlockStateSet.isEmpty() ? new BlockState[]{Blocks.DIAMOND_ORE.defaultBlockState()} : presetBlockStateSet.toArray(new BlockState[0]);
             presetBlockStatesFull = presetBlockStateSet.isEmpty() ? new BlockState[]{Blocks.DIAMOND_ORE.defaultBlockState()} : presetBlockStateList.toArray(new BlockState[0]);
             presetBlockStatesStone = null;
+            presetBlockStatesDeepslate = null;
             presetBlockStatesNetherrack = null;
             presetBlockStatesEndStone = null;
             presetBlockStateBitsGlobal = new int[presetBlockStatesFull.length];
@@ -111,6 +122,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             }
 
             presetBlockStateBitsStoneGlobal = null;
+            presetBlockStateBitsDeepslateGlobal = null;
             presetBlockStateBitsNetherrackGlobal = null;
             presetBlockStateBitsEndStoneGlobal = null;
         }
@@ -146,7 +158,6 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             }
         }
 
-        @SuppressWarnings("deprecation")
         EmptyLevelChunk emptyChunk = new EmptyLevelChunk(level, new ChunkPos(0, 0), MinecraftServer.getServer().registryAccess().registryOrThrow(Registry.BIOME_REGISTRY).getHolderOrThrow(Biomes.PLAINS));
         BlockPos zeroPos = new BlockPos(0, 0, 0);
 
@@ -155,13 +166,17 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
 
             if (blockState != null) {
                 solidGlobal[i] = blockState.isRedstoneConductor(emptyChunk, zeroPos)
-                    && blockState.getBlock() != Blocks.SPAWNER && blockState.getBlock() != Blocks.BARRIER && blockState.getBlock() != Blocks.SHULKER_BOX && blockState.getBlock() != Blocks.SLIME_BLOCK || paperWorldConfig.lavaObscures && blockState == Blocks.LAVA.defaultBlockState();
+                    && blockState.getBlock() != Blocks.SPAWNER && blockState.getBlock() != Blocks.BARRIER && blockState.getBlock() != Blocks.SHULKER_BOX && blockState.getBlock() != Blocks.SLIME_BLOCK && blockState.getBlock() != Blocks.MANGROVE_ROOTS || paperWorldConfig.lavaObscures && blockState == Blocks.LAVA.defaultBlockState();
                 // Comparing blockState == Blocks.LAVA.defaultBlockState() instead of blockState.getBlock() == Blocks.LAVA ensures that only "stationary lava" is used
                 // shulker box checks TE.
             }
         }
 
         maxBlockHeightUpdatePosition = maxBlockHeight + updateRadius - 1;
+    }
+
+    public ChunkPacketBlockController getOldController() {
+        return oldController;
     }
 
     private int getPresetBlockStatesFullLength() {
@@ -179,7 +194,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
                     case THE_END:
                         return presetBlockStatesEndStone;
                     default:
-                        return presetBlockStatesStone;
+                        return bottomBlockY < 0 ? presetBlockStatesDeepslate : presetBlockStatesStone;
                 }
             }
 
@@ -200,7 +215,6 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
         return new ChunkPacketInfoAntiXray(chunkPacket, chunk, this);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void modifyBlocks(ClientboundLevelChunkWithLightPacket chunkPacket, ChunkPacketInfo<BlockState> chunkPacketInfo) {
         if (!(chunkPacketInfo instanceof ChunkPacketInfoAntiXray)) {
@@ -249,7 +263,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
         LevelChunkSection[] nearbyChunkSections = new LevelChunkSection[4];
         LevelChunk chunk = chunkPacketInfoAntiXray.getChunk();
         Level level = chunk.getLevel();
-        int maxChunkSectionIndex = Math.min((maxBlockHeight >> 4) - chunk.getMinSection(), chunk.getSectionsCount() - 1);
+        int maxChunkSectionIndex = Math.min((maxBlockHeight >> 4) - chunk.getMinSection(), chunk.getSectionsCount()) - 1;
         boolean[] solidTemp = null;
         boolean[] obfuscateTemp = null;
         boolean[] traceTemp = null;
@@ -290,7 +304,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
                                 presetBlockStateBitsTemp = presetBlockStateBitsEndStoneGlobal;
                                 break;
                             default:
-                                presetBlockStateBitsTemp = presetBlockStateBitsStoneGlobal;
+                                presetBlockStateBitsTemp = chunkSectionIndex + chunk.getMinSection() < 0 ? presetBlockStateBitsDeepslateGlobal : presetBlockStateBitsStoneGlobal;
                         }
                     } else {
                         presetBlockStateBitsTemp = presetBlockStateBitsGlobal;
@@ -779,7 +793,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     }
 
     @Override
-    public void onPlayerLeftClickBlock(ServerPlayerGameMode serverPlayerGameMode, BlockPos blockPos, ServerboundPlayerActionPacket.Action action, Direction direction, int worldHeight) {
+    public void onPlayerLeftClickBlock(ServerPlayerGameMode serverPlayerGameMode, BlockPos blockPos, ServerboundPlayerActionPacket.Action action, Direction direction, int worldHeight, int sequence) {
         if (blockPos.getY() <= maxBlockHeightUpdatePosition) {
             updateNearbyBlocks(serverPlayerGameMode.level, blockPos);
         }
