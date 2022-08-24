@@ -34,11 +34,18 @@ import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 
 import io.papermc.paper.configuration.type.EngineMode;
+import io.papermc.paper.chunk.PlayerChunkLoader;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 
 public final class RayTraceAntiXray extends JavaPlugin {
     private volatile boolean running = false;
@@ -56,6 +63,16 @@ public final class RayTraceAntiXray extends JavaPlugin {
 
         saveDefaultConfig();
         getConfig().options().copyDefaults(true);
+        reloadConfig();
+
+        for (World w : Bukkit.getWorlds()) {
+            WorldListener.handleLoad(this, w);
+        }
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            PlayerListener.handleJoin(this, p);
+        }
+
         // saveConfig();
         // Initialize stuff.
         running = true;
@@ -77,6 +94,8 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // unregisterCommands();
         // Cleanup stuff.
         ProtocolLibrary.getProtocolManager().removePacketListeners(this);
+        HandlerList.unregisterAll(this);
+
         running = false;
         timer.cancel();
         executorService.shutdownNow();
@@ -88,20 +107,29 @@ public final class RayTraceAntiXray extends JavaPlugin {
             e.printStackTrace();
         }
 
+        for (World w : Bukkit.getWorlds()) {
+            WorldListener.handleUnload(this, w);
+        }
+
         packetChunkBlocksCache.clear();
         playerData.clear();
         getLogger().info(getDescription().getFullName() + " disabled");
     }
 
-    /* public void onReload() {
-        // Cleanup stuff.
-        saveDefaultConfig();
-        reloadConfig();
-        getConfig().options().copyDefaults(true);
-        // saveConfig();
-        // Initialize stuff.
+    public void reload() {
+        onDisable();
+        onEnable();
         getLogger().info(getDescription().getFullName() + " reloaded");
-    } */
+    }
+
+    public void reloadChunks(Iterable<Player> players) {
+        for (Player bp : players) {
+            ServerPlayer p = ((CraftPlayer) bp).getHandle();
+            PlayerChunkLoader playerChunkManager = ((ServerLevel) p.level).getChunkSource().chunkMap.playerChunkManager;
+            playerChunkManager.removePlayer(p);
+            playerChunkManager.addPlayer(p);
+        }
+    }
 
     public boolean isRunning() {
         return running;

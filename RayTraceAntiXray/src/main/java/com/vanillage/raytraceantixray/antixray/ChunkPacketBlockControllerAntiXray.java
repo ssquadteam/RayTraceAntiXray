@@ -39,6 +39,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     public static final Palette<BlockState> GLOBAL_BLOCKSTATE_PALETTE = new GlobalPalette<>(Block.BLOCK_STATE_REGISTRY);
     private static final LevelChunkSection EMPTY_SECTION = null;
     private final RayTraceAntiXray plugin;
+    private final ChunkPacketBlockController oldController;
     private final Executor executor;
     private final EngineMode engineMode;
     private final int maxBlockHeight;
@@ -64,8 +65,9 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     public final double rayTraceDistance;
     private final int maxBlockHeightUpdatePosition;
 
-    public ChunkPacketBlockControllerAntiXray(RayTraceAntiXray plugin, boolean rayTraceThirdPerson, double rayTraceDistance, int maxRayTraceBlockCountPerChunk, Iterable<? extends String> toTrace, Level level, Executor executor) {
+    public ChunkPacketBlockControllerAntiXray(RayTraceAntiXray plugin, ChunkPacketBlockController oldController, boolean rayTraceThirdPerson, double rayTraceDistance, int maxRayTraceBlockCountPerChunk, Iterable<? extends String> toTrace, Level level, Executor executor) {
         this.plugin = plugin;
+        this.oldController = oldController;
         this.executor = executor;
         WorldConfiguration.Anticheat.AntiXray paperWorldConfig = level.paperConfig().anticheat.antiXray;
         engineMode = paperWorldConfig.engineMode;
@@ -171,6 +173,10 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
         }
 
         maxBlockHeightUpdatePosition = maxBlockHeight + updateRadius - 1;
+    }
+
+    public ChunkPacketBlockController getOldController() {
+        return oldController;
     }
 
     private int getPresetBlockStatesFullLength() {
