@@ -6,122 +6,135 @@ import java.util.NoSuchElementException;
 import org.bukkit.util.Vector;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
+import net.minecraft.core.BlockPos.MutableBlockPos;
 
+// Amanatides, J., & Woo, A. A Fast Voxel Traversal Algorithm for Ray Tracing. http://www.cse.yorku.ca/~amana/research/grid.pdf.
 public final class BlockIterator implements Iterator<BlockPos> {
-    private final Vector start;
-    private final Vector direction;
-    private final double distanceSquared;
-    private final int xDirection;
-    private final int yDirection;
-    private final int zDirection;
-    private int xFace;
-    private int yFace;
-    private int zFace;
-    private double xFaceY;
-    private double xFaceZ;
-    private double yFaceZ;
-    private double yFaceX;
-    private double zFaceX;
-    private double zFaceY;
-    private double xFaceDistanceSquared;
-    private double yFaceDistanceSquared;
-    private double zFaceDistanceSquared;
+    private int x;
+    private int y;
+    private int z;
+    private int stepX;
+    private int stepY;
+    private int stepZ;
+    private double tMax;
+    private double tMaxX;
+    private double tMaxY;
+    private double tMaxZ;
+    private double tDeltaX;
+    private double tDeltaY;
+    private double tDeltaZ;
+    private final MutableBlockPos ref; // This implementation always returns ref to avoid garbage. Can easily be changed if needed.
     private BlockPos next;
 
     public BlockIterator(Vector start, Vector end) {
-        this.start = start.clone();
-        Vector direction = end.clone().subtract(start);
-        distanceSquared = direction.lengthSquared();
-        this.direction = direction.normalize();
-        xDirection = direction.getX() < 0. ? -1 : 1;
-        yDirection = direction.getY() < 0. ? -1 : 1;
-        zDirection = direction.getZ() < 0. ? -1 : 1;
-        setup();
+        ref = new MutableBlockPos();
+        initialize(start, end);
     }
 
     public BlockIterator(Vector start, Vector direction, double distance) {
-        this.start = start.clone();
-        this.direction = direction.clone().normalize();
-        distanceSquared = distance * distance;
-        xDirection = direction.getX() < 0. ? -1 : 1;
-        yDirection = direction.getY() < 0. ? -1 : 1;
-        zDirection = direction.getZ() < 0. ? -1 : 1;
-        setup();
+        ref = new MutableBlockPos();
+        initialize(start, direction, distance);
     }
 
-    private void setup() {
-        xFace = start.getBlockX() + ((xDirection + 1) / 2);
-        yFace = start.getBlockY() + ((yDirection + 1) / 2);
-        zFace = start.getBlockZ() + ((zDirection + 1) / 2);
-        intersectX();
-        intersectY();
-        intersectZ();
-        calculateNext();
+    public BlockIterator initialize(Vector start, Vector end) {
+        // Vector direction = end.clone().subtract(start);
+        // double distance = direction.length();
+        // direction.normalize();
+        // direction.setX(direction.getX() / distance);
+        // direction.setY(direction.getY() / distance);
+        // direction.setZ(direction.getZ() / distance);
+        double directionX = end.getX() - start.getX();
+        double directionY = end.getY() - start.getY();
+        double directionZ = end.getZ() - start.getZ();
+        double distance = Math.sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
+        directionX /= distance;
+        directionY /= distance;
+        directionZ /= distance;
+        return initialize(start, directionX, directionY, directionZ, distance);
     }
 
-    private void intersectX() {
-        double dx = xFace - start.getX();
-        double factor = dx / direction.getX();
-        double dy = factor * direction.getY();
-        double dz = factor * direction.getZ();
-        xFaceY = dy + start.getY();
-        xFaceZ = dz + start.getZ();
-        xFaceDistanceSquared = dx * dx + dy * dy + dz * dz;
+    public BlockIterator initialize(Vector start, Vector direction, double distance) {
+        // direction = direction.clone().multiply(Math.signum(distance)).normalize();
+        // tMax = Math.abs(distance);
+        return initialize(start, direction.getX(), direction.getY(), direction.getZ(), distance);
     }
 
-    private void intersectY() {
-        double dy = yFace - start.getY();
-        double factor = dy / direction.getY();
-        double dz = factor * direction.getZ();
-        double dx = factor * direction.getX();
-        yFaceZ = dz + start.getZ();
-        yFaceX = dx + start.getX();
-        yFaceDistanceSquared = dx * dx + dy * dy + dz * dz;
-    }
-
-    private void intersectZ() {
-        double dz = zFace - start.getZ();
-        double factor = dz / direction.getZ();
-        double dx = factor * direction.getX();
-        double dy = factor * direction.getY();
-        zFaceX = dx + start.getX();
-        zFaceY = dy + start.getY();
-        zFaceDistanceSquared = dx * dx + dy * dy + dz * dz;
+    private BlockIterator initialize(Vector start, double directionX, double directionY, double directionZ, double distance) {
+        x = start.getBlockX();
+        y = start.getBlockY();
+        z = start.getBlockZ();
+        tMax = distance;
+        stepX = directionX < 0. ? -1 : 1;
+        stepY = directionY < 0. ? -1 : 1;
+        stepZ = directionZ < 0. ? -1 : 1;
+        tMaxX = directionX == 0. ? Double.POSITIVE_INFINITY : (x + (stepX + 1) / 2 - start.getX()) / directionX;
+        tMaxY = directionY == 0. ? Double.POSITIVE_INFINITY : (y + (stepY + 1) / 2 - start.getY()) / directionY;
+        tMaxZ = directionZ == 0. ? Double.POSITIVE_INFINITY : (z + (stepZ + 1) / 2 - start.getZ()) / directionZ;
+        tDeltaX = 1. / Math.abs(directionX);
+        tDeltaY = 1. / Math.abs(directionY);
+        tDeltaZ = 1. / Math.abs(directionZ);
+        next = ref;
+        // ref.set(x, y, z);
+        calculateNext(); // This implementation doesn't include the start block. Use comment above if needed.
+        return this;
     }
 
     private void calculateNext() {
-        if (xFaceDistanceSquared < yFaceDistanceSquared) {
-            if (zFaceDistanceSquared < xFaceDistanceSquared) {
-                if (zFaceDistanceSquared <= distanceSquared) {
-                    next = new BlockPos(Mth.floor(zFaceX), Mth.floor(zFaceY), zFace + (zDirection - 1) / 2);
-                    zFace += zDirection;
-                    intersectZ();
+        if (tMaxX < tMaxY) {
+            if (tMaxZ < tMaxX) {
+                if (tMaxZ <= tMax) {
+                    z += stepZ;
+                    // next = new BlockPos(x, y, z);
+                    ref.set(x, y, z);
+                    tMaxZ += tDeltaZ;
                 } else {
                     next = null;
                 }
             } else {
-                if (xFaceDistanceSquared <= distanceSquared) {
-                    next = new BlockPos(xFace + (xDirection - 1) / 2, Mth.floor(xFaceY), Mth.floor(xFaceZ));
-                    xFace += xDirection;
-                    intersectX();
+                if (tMaxX <= tMax) {
+                    if (tMaxZ == tMaxX) {
+                        z += stepZ;
+                        tMaxZ += tDeltaZ;
+                    }
+
+                    x += stepX;
+                    // next = new BlockPos(x, y, z);
+                    ref.set(x, y, z);
+                    tMaxX += tDeltaX;
                 } else {
                     next = null;
                 }
             }
-        } else if (yFaceDistanceSquared < zFaceDistanceSquared) {
-            if (yFaceDistanceSquared <= distanceSquared) {
-                next = new BlockPos(Mth.floor(yFaceX), yFace + (yDirection - 1) / 2, Mth.floor(yFaceZ));
-                yFace += yDirection;
-                intersectY();
+        } else if (tMaxY < tMaxZ) {
+            if (tMaxY <= tMax) {
+                if (tMaxX == tMaxY) {
+                    x += stepX;
+                    tMaxX += tDeltaX;
+                }
+
+                y += stepY;
+                // next = new BlockPos(x, y, z);
+                ref.set(x, y, z);
+                tMaxY += tDeltaY;
             } else {
                 next = null;
             }
         } else {
-            if (zFaceDistanceSquared <= distanceSquared) {
-                next = new BlockPos(Mth.floor(zFaceX), Mth.floor(zFaceY), zFace + (zDirection - 1) / 2);
-                zFace += zDirection;
-                intersectZ();
+            if (tMaxZ <= tMax) {
+                if (tMaxX == tMaxZ) {
+                    x += stepX;
+                    tMaxX += tDeltaX;
+                }
+
+                if (tMaxY == tMaxZ) {
+                    y += stepY;
+                    tMaxY += tDeltaY;
+                }
+
+                z += stepZ;
+                // next = new BlockPos(x, y, z);
+                ref.set(x, y, z);
+                tMaxZ += tDeltaZ;
             } else {
                 next = null;
             }
