@@ -3,7 +3,6 @@ package com.vanillage.raytraceantixray.listeners;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,19 +31,13 @@ public final class PlayerListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
         PlayerData playerData = plugin.getPlayerData().get(event.getPlayer().getUniqueId());
-        if (playerData != null) {
-            Location location = event.getTo();
-
-            if (location.getWorld().equals(playerData.getLocations().get(0).getWorld())) {
-                location = location.clone();
-                location.setY(location.getY() + event.getPlayer().getEyeHeight());
-                playerData.setLocations(plugin.getLocations(event.getPlayer(), location));
-            }
+        if (playerData != null && RayTraceAntiXray.hasController(event.getTo().getWorld())) {
+            playerData.updateLocations(event.getPlayer(), event.getTo());
         }
     }
 
     public static void handleJoin(RayTraceAntiXray plugin, Player player) {
-        PlayerData playerData = new PlayerData(plugin.getLocations(player, player.getEyeLocation()));
+        PlayerData playerData = new PlayerData(player);
         playerData.setCallable(new RayTraceCallable(playerData));
         plugin.getPlayerData().put(player.getUniqueId(), playerData);
     }

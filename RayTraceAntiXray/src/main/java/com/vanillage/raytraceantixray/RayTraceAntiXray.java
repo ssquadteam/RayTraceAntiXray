@@ -1,27 +1,6 @@
 package com.vanillage.raytraceantixray;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R1.entity.CraftEntity;
-import org.bukkit.entity.Entity;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Vector;
-
 import com.comphenix.protocol.ProtocolLibrary;
-import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.google.common.collect.MapMaker;
 import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
 import com.vanillage.raytraceantixray.commands.RayTraceAntiXrayTabExecutor;
@@ -32,20 +11,26 @@ import com.vanillage.raytraceantixray.listeners.PlayerListener;
 import com.vanillage.raytraceantixray.listeners.WorldListener;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
-
-import io.papermc.paper.configuration.type.EngineMode;
 import io.papermc.paper.chunk.PlayerChunkLoader;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.util.Map;
+import java.util.Timer;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public final class RayTraceAntiXray extends JavaPlugin {
     private volatile boolean running = false;
@@ -155,48 +140,8 @@ public final class RayTraceAntiXray extends JavaPlugin {
         return executorService;
     }
 
-    public boolean isEnabled(World world) {
-        return ((CraftWorld) world).getHandle().paperConfig().anticheat.antiXray.enabled && ((CraftWorld) world).getHandle().paperConfig().anticheat.antiXray.engineMode == EngineMode.HIDE && getConfig().getBoolean("world-settings." + world.getName() + ".anti-xray.ray-trace", getConfig().getBoolean("world-settings.default.anti-xray.ray-trace"));
+    public static boolean hasController(World world) {
+        return ((CraftWorld) world).getHandle().chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray;
     }
 
-    public List<Location> getLocations(Entity entity, Location location) {
-        ChunkPacketBlockController chunkPacketBlockController = ((CraftWorld) location.getWorld()).getHandle().chunkPacketBlockController;
-
-        if (chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray && ((ChunkPacketBlockControllerAntiXray) chunkPacketBlockController).rayTraceThirdPerson) {
-            Vector direction = location.getDirection();
-            return Arrays.asList(location, move(entity, location, direction), move(entity, location, direction.multiply(-1.)).setDirection(direction));
-        }
-
-        return Collections.singletonList(location);
-    }
-
-    private Location move(Entity entity, Location location, Vector direction) {
-        return location.clone().subtract(direction.clone().multiply(getMaxZoom(entity, location, direction, 4.)));
-    }
-
-    private double getMaxZoom(Entity entity, Location location, Vector direction, double maxZoom) {
-        Vec3 position = new Vec3(location.getX(), location.getY(), location.getZ());
-
-        for (int i = 0; i < 8; i++) {
-            float edgeX = (float) ((i & 1) * 2 - 1);
-            float edgeY = (float) ((i >> 1 & 1) * 2 - 1);
-            float edgeZ = (float) ((i >> 2 & 1) * 2 - 1);
-            edgeX *= 0.1f;
-            edgeY *= 0.1f;
-            edgeZ *= 0.1f;
-            Vec3 edge = position.add(edgeX, edgeY, edgeZ);
-            Vec3 edgeMoved = new Vec3(position.x - direction.getX() * maxZoom + (double) edgeX + (double) edgeZ, position.y - direction.getY() * maxZoom + (double) edgeY, position.z - direction.getZ() * maxZoom + (double) edgeZ);
-            BlockHitResult result = ((CraftWorld) location.getWorld()).getHandle().clip(new ClipContext(edge, edgeMoved, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, ((CraftEntity) entity).getHandle()));
-
-            if (result.getType() != HitResult.Type.MISS) {
-                double zoom = result.getLocation().distanceTo(position);
-
-                if (zoom < maxZoom) {
-                    maxZoom = zoom;
-                }
-            }
-        }
-
-        return maxZoom;
-    }
 }

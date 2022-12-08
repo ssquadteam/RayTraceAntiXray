@@ -4,9 +4,11 @@ import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.google.common.base.Preconditions;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
+import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import org.bukkit.World;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -37,11 +39,14 @@ public final class WorldListener implements Listener {
     }
 
     public static void handleLoad(RayTraceAntiXray plugin, World w) {
-        if (plugin.isEnabled(w)) {
-            boolean rayTraceThirdPerson = plugin.getConfig().getBoolean("world-settings." + w.getName() + ".anti-xray.ray-trace-third-person", plugin.getConfig().getBoolean("world-settings.default.anti-xray.ray-trace-third-person"));
-            double rayTraceDistance = Math.max(plugin.getConfig().getDouble("world-settings." + w.getName() + ".anti-xray.ray-trace-distance", plugin.getConfig().getDouble("world-settings.default.anti-xray.ray-trace-distance")), 0.);
-            int maxRayTraceBlockCountPerChunk = Math.max(plugin.getConfig().getInt("world-settings." + w.getName() + ".anti-xray.max-ray-trace-block-count-per-chunk", plugin.getConfig().getInt("world-settings.default.anti-xray.max-ray-trace-block-count-per-chunk")), 0);
-            List<String> rayTraceBlocks = plugin.getConfig().getList("world-settings." + w.getName() + ".anti-xray.ray-trace-blocks", plugin.getConfig().getList("world-settings.default.anti-xray.ray-trace-blocks")).stream().filter(o -> o != null).map(String::valueOf).collect(Collectors.toList());
+        Configuration conf = plugin.getConfig();
+        if (((CraftWorld) w).getHandle().paperConfig().anticheat.antiXray.enabled
+                && ((CraftWorld) w).getHandle().paperConfig().anticheat.antiXray.engineMode == EngineMode.HIDE
+                && conf.getBoolean("world-settings." + w.getName() + ".anti-xray.ray-trace", conf.getBoolean("world-settings.default.anti-xray.ray-trace"))) {
+            boolean rayTraceThirdPerson = conf.getBoolean("world-settings." + w.getName() + ".anti-xray.ray-trace-third-person", conf.getBoolean("world-settings.default.anti-xray.ray-trace-third-person"));
+            double rayTraceDistance = Math.max(conf.getDouble("world-settings." + w.getName() + ".anti-xray.ray-trace-distance", conf.getDouble("world-settings.default.anti-xray.ray-trace-distance")), 0.);
+            int maxRayTraceBlockCountPerChunk = Math.max(conf.getInt("world-settings." + w.getName() + ".anti-xray.max-ray-trace-block-count-per-chunk", conf.getInt("world-settings.default.anti-xray.max-ray-trace-block-count-per-chunk")), 0);
+            List<String> rayTraceBlocks = conf.getList("world-settings." + w.getName() + ".anti-xray.ray-trace-blocks", conf.getList("world-settings.default.anti-xray.ray-trace-blocks")).stream().filter(o -> o != null).map(String::valueOf).collect(Collectors.toList());
 
             try {
                 Preconditions.checkArgument(!(((CraftWorld) w).getHandle().chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray), "World already has ChunkPacketBlockControllerAntiXray");

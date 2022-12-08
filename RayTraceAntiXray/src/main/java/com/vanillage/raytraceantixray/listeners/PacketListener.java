@@ -33,7 +33,7 @@ public final class PacketListener extends PacketAdapter {
                 Location location = event.getPlayer().getEyeLocation();
 
                 if (!location.getWorld().equals(playerData.getLocations().get(0).getWorld())) {
-                    playerData = new PlayerData(plugin.getLocations(event.getPlayer(), location));
+                    playerData = new PlayerData(event.getPlayer());
                     playerData.setCallable(new RayTraceCallable(playerData));
                     plugin.getPlayerData().put(event.getPlayer().getUniqueId(), playerData);
                 }
@@ -49,16 +49,14 @@ public final class PacketListener extends PacketAdapter {
             }
 
             if (!chunk.getLevel().getWorld().equals(playerData.getLocations().get(0).getWorld())) {
-                Location location = event.getPlayer().getEyeLocation();
-
-                if (!chunk.getLevel().getWorld().equals(location.getWorld())) {
+                if (!chunk.getLevel().getWorld().equals(event.getPlayer().getWorld())) {
                     // (Chunk) packets can be delayed.
                     // If the worlds don't match, the player is already in another world.
                     // The packet can be ignored.
                     return;
                 }
 
-                playerData = new PlayerData(plugin.getLocations(event.getPlayer(), location));
+                playerData = new PlayerData(event.getPlayer());
                 playerData.setCallable(new RayTraceCallable(playerData));
                 plugin.getPlayerData().put(event.getPlayer().getUniqueId(), playerData);
             }
