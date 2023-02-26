@@ -2,7 +2,6 @@ package com.vanillage.raytraceantixray.data;
 
 import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
@@ -23,7 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public final class PlayerData {
     private volatile List<? extends Location> locations;
     private final Map<ChunkPos, ChunkBlocks> chunks = new ConcurrentHashMap<>();
-    private final Queue<BlockPos> result = new ConcurrentLinkedQueue<>();
+    private final Queue<Result> resultQueue = new ConcurrentLinkedQueue<>();
     private Callable<?> callable;
 
     public PlayerData(Player player) {
@@ -46,8 +45,8 @@ public final class PlayerData {
         return chunks;
     }
 
-    public Queue<BlockPos> getResult() {
-        return result;
+    public Queue<Result> getResultQueue() {
+        return resultQueue;
     }
 
     public Callable<?> getCallable() {

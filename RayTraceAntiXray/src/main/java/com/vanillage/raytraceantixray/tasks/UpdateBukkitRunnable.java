@@ -1,15 +1,20 @@
 package com.vanillage.raytraceantixray.tasks;
 
-import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
-import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
 import com.vanillage.raytraceantixray.data.PlayerData;
+import com.vanillage.raytraceantixray.data.Result;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
-import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.World.Environment;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.UUID;
 
 public final class UpdateBukkitRunnable extends BukkitRunnable {
     private final RayTraceAntiXray plugin;
@@ -20,16 +25,45 @@ public final class UpdateBukkitRunnable extends BukkitRunnable {
 
     @Override
     public void run() {
-        for (PlayerData playerData : plugin.getPlayerData().values()) {
-            Level level = ((CraftWorld) playerData.getLocations().get(0).getWorld()).getHandle();
-            ChunkPacketBlockController chunkPacketBlockController = level.chunkPacketBlockController;
+        for (Entry<UUID, PlayerData> entry : plugin.getPlayerData().entrySet()) {
+            Player player = plugin.getServer().getPlayer(entry.getKey());
 
-            if (chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray) {
-                Queue<BlockPos> result = playerData.getResult();
+            if (player == null) {
+                continue;
+            }
 
-                for (BlockPos block = result.poll(); block != null; block = result.poll()) {
-                    ((ChunkPacketBlockControllerAntiXray) chunkPacketBlockController).updateBlock(level, block);
+            PlayerData playerData = entry.getValue();
+            World world = playerData.getLocations().get(0).getWorld();
+
+            if (!player.getWorld().equals(world)) {
+                continue;
+            }
+
+            Queue<Result> resultQueue = playerData.getResultQueue();
+
+            for (Result result = resultQueue.poll(); result != null; result = resultQueue.poll()) {
+                BlockPos resultBlock = result.getBlock();
+                Block block = world.getBlockAt(resultBlock.getX(), resultBlock.getY(), resultBlock.getZ());
+
+                if (!block.getChunk().isLoaded()) {
+                    continue;
                 }
+
+                BlockData blockData;
+
+                if (result.isVisible()) {
+                    blockData = block.getBlockData();
+                } else if (world.getEnvironment() == Environment.NETHER) {
+                    blockData = Material.NETHERRACK.createBlockData();
+                } else if (world.getEnvironment() == Environment.THE_END) {
+                    blockData = Material.END_STONE.createBlockData();
+                } else if (block.getY() < 0) {
+                    blockData = Material.DEEPSLATE.createBlockData();
+                } else {
+                    blockData = Material.STONE.createBlockData();
+                }
+
+                player.sendBlockChange(block.getLocation(), blockData);
             }
         }
     }
