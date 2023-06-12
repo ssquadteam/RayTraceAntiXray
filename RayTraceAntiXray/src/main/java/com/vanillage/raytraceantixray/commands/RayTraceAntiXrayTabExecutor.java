@@ -85,7 +85,7 @@ public final class RayTraceAntiXrayTabExecutor implements TabExecutor {
                     } else if (args[1].toLowerCase(Locale.ROOT).equals("on")) {
                         if (sender.hasPermission("raytraceantixray.command.raytraceantixray.timings.on")) {
                             if (args.length == 2) {
-                                plugin.setTimings(true);
+                                plugin.setTimingsEnabled(true);
                                 sender.sendMessage("Timings turned on.");
                                 return true;
                             }
@@ -96,7 +96,7 @@ public final class RayTraceAntiXrayTabExecutor implements TabExecutor {
                     } else if (args[1].toLowerCase(Locale.ROOT).equals("off")) {
                         if (sender.hasPermission("raytraceantixray.command.raytraceantixray.timings.off")) {
                             if (args.length == 2) {
-                                plugin.setTimings(false);
+                                plugin.setTimingsEnabled(false);
                                 sender.sendMessage("Timings turned off.");
                                 return true;
                             }

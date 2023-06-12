@@ -1,17 +1,20 @@
 package com.vanillage.raytraceantixray.data;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.chunk.LevelChunk;
-
+import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 
-public final class ChunkBlocks {
-    private final WeakReference<LevelChunk> chunk;
-    private final Map<? extends BlockPos, Boolean> blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.chunk.LevelChunk;
 
-    public ChunkBlocks(LevelChunk chunk, Map<? extends BlockPos, Boolean> blocks) {
+public final class ChunkBlocks {
+    private final Reference<LevelChunk> chunk;
+    private final LongWrapper key;
+    private final Map<BlockPos, Boolean> blocks;
+
+    public ChunkBlocks(LevelChunk chunk, Map<BlockPos, Boolean> blocks) {
         this.chunk = new WeakReference<>(chunk);
+        key = new LongWrapper(chunk.getPos().toLong());
         this.blocks = blocks;
     }
 
@@ -19,7 +22,11 @@ public final class ChunkBlocks {
         return chunk.get();
     }
 
-    public Map<? extends BlockPos, Boolean> getBlocks() {
+    public LongWrapper getKey() {
+        return key;
+    }
+
+    public Map<BlockPos, Boolean> getBlocks() {
         return blocks;
     }
 }
