@@ -14,16 +14,15 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.MissingPaletteEntryException;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.util.Vector;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
-public final class RayTraceCallable implements Callable<Void> {
+public final class RayTraceCallable implements Runnable {
     private static final IntArrayConsumer INCREASE_X = c -> c[0]++;
     private static final IntArrayConsumer DECREASE_X = c -> c[0]--;
     private static final IntArrayConsumer INCREASE_Y = c -> c[1]++;
@@ -51,15 +50,8 @@ public final class RayTraceCallable implements Callable<Void> {
     }
 
     @Override
-    public Void call() {
-        try {
-            rayTrace();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        }
-
-        return null;
+    public void run() {
+        rayTrace();
     }
 
     private void rayTrace() {
@@ -67,11 +59,10 @@ public final class RayTraceCallable implements Callable<Void> {
         Location playerLocation = locations.get(0);
         ChunkPacketBlockController chunkPacketBlockController = ((CraftWorld) playerLocation.getWorld()).getHandle().chunkPacketBlockController;
 
-        if (!(chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray)) {
+        if (!(chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray chunkPacketBlockControllerAntiXray)) {
             return;
         }
 
-        ChunkPacketBlockControllerAntiXray chunkPacketBlockControllerAntiXray = (ChunkPacketBlockControllerAntiXray) chunkPacketBlockController;
         boolean[] solidGlobal = chunkPacketBlockControllerAntiXray.solidGlobal;
         double rayTraceDistance = chunkPacketBlockControllerAntiXray.rayTraceDistance;
         Vector playerVector = playerLocation.toVector();

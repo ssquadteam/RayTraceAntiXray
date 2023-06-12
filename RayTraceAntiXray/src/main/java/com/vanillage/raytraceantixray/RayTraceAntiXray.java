@@ -2,6 +2,7 @@ package com.vanillage.raytraceantixray;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.google.common.collect.MapMaker;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
 import com.vanillage.raytraceantixray.commands.RayTraceAntiXrayTabExecutor;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
@@ -11,34 +12,28 @@ import com.vanillage.raytraceantixray.listeners.PlayerListener;
 import com.vanillage.raytraceantixray.listeners.WorldListener;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
-import io.papermc.paper.chunk.PlayerChunkLoader;
+import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.Map;
-import java.util.Timer;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public final class RayTraceAntiXray extends JavaPlugin {
     private volatile boolean running = false;
     private volatile boolean timings = false;
     private final Map<ClientboundLevelChunkWithLightPacket, ChunkBlocks> packetChunkBlocksCache = new MapMaker().weakKeys().makeMap();
     private final Map<UUID, PlayerData> playerData = new ConcurrentHashMap<>();
-    private ExecutorService executorService;
-    private Timer timer;
+    private ScheduledExecutorService executorService;
 
     @Override
     public void onEnable() {
@@ -61,9 +56,13 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // saveConfig();
         // Initialize stuff.
         running = true;
-        executorService = Executors.newFixedThreadPool(Math.max(getConfig().getInt("settings.anti-xray.ray-trace-threads"), 1));
-        timer = new Timer(true);
-        timer.schedule(new RayTraceTimerTask(this), 0L, Math.max(getConfig().getLong("settings.anti-xray.ms-per-ray-trace-tick"), 1L));
+        int threadCount = Math.max(getConfig().getInt("settings.anti-xray.ray-trace-threads"), 1);
+        long interval = Math.max(getConfig().getLong("settings.anti-xray.ms-per-ray-trace-tick"), 1L);
+        executorService = Executors.newScheduledThreadPool(
+                threadCount,
+                new ThreadFactoryBuilder().setNameFormat("raytrace-anti-xray-worker-%d").build()
+        );
+        executorService.scheduleAtFixedRate(new RayTraceTimerTask(this), 0L, interval, TimeUnit.MILLISECONDS);
         new UpdateBukkitRunnable(this).runTaskTimer(this, 0L, Math.max(getConfig().getLong("settings.anti-xray.update-ticks"), 1L));
         // Register events.
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
@@ -82,7 +81,6 @@ public final class RayTraceAntiXray extends JavaPlugin {
         HandlerList.unregisterAll(this);
 
         running = false;
-        timer.cancel();
         executorService.shutdownNow();
 
         try {
@@ -110,7 +108,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
     public void reloadChunks(Iterable<Player> players) {
         for (Player bp : players) {
             ServerPlayer p = ((CraftPlayer) bp).getHandle();
-            PlayerChunkLoader playerChunkManager = ((ServerLevel) p.level).getChunkSource().chunkMap.playerChunkManager;
+            RegionizedPlayerChunkLoader playerChunkManager = p.serverLevel().getChunkSource().chunkMap.level.playerChunkLoader;
             playerChunkManager.removePlayer(p);
             playerChunkManager.addPlayer(p);
         }

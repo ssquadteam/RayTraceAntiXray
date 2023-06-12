@@ -1,12 +1,11 @@
 package com.vanillage.raytraceantixray.util;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-import org.bukkit.util.Vector;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import org.bukkit.util.Vector;
+
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 // Amanatides, J., & Woo, A. A Fast Voxel Traversal Algorithm for Ray Tracing. http://www.cse.yorku.ca/~amana/research/grid.pdf.
 public final class BlockIterator implements Iterator<BlockPos> {

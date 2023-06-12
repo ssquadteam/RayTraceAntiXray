@@ -14,7 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public final class RayTraceAntiXrayTabExecutor implements TabExecutor {
     private final RayTraceAntiXray plugin;
@@ -61,7 +60,7 @@ public final class RayTraceAntiXrayTabExecutor implements TabExecutor {
                             completions.addAll(Bukkit.getOnlinePlayers().stream()
                                     .map(Player::getName)
                                     .filter(n -> n.toLowerCase().startsWith(args[args.length-1].toLowerCase()))
-                                    .collect(Collectors.toList()));
+                                    .toList());
                         }
                         if (args.length == 2 && "*".startsWith(args[1])) {
                             completions.add("*");

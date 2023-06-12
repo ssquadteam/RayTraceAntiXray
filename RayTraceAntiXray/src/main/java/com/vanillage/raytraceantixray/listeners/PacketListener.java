@@ -34,7 +34,7 @@ public final class PacketListener extends PacketAdapter {
 
                 if (!location.getWorld().equals(playerData.getLocations().get(0).getWorld())) {
                     playerData = new PlayerData(event.getPlayer());
-                    playerData.setCallable(new RayTraceCallable(playerData));
+                    playerData.setRunnable(new RayTraceCallable(playerData));
                     plugin.getPlayerData().put(event.getPlayer().getUniqueId(), playerData);
                 }
 
@@ -57,7 +57,7 @@ public final class PacketListener extends PacketAdapter {
                 }
 
                 playerData = new PlayerData(event.getPlayer());
-                playerData.setCallable(new RayTraceCallable(playerData));
+                playerData.setRunnable(new RayTraceCallable(playerData));
                 plugin.getPlayerData().put(event.getPlayer().getUniqueId(), playerData);
             }
 

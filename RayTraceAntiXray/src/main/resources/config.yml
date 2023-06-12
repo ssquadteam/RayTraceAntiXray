@@ -14,17 +14,13 @@
 #       max-ray-trace-block-count-per-chunk: 30 # Maximum number of ray traced blocks per chunk. Counting starts at the bottom of the world and increases upwards.
 #       rehide-blocks: true                     # Whether or not to rehide blocks when they were visible to a player but are no longer visible. If false, blocks are only rehidden when the chunk is resent.
 #       ray-trace-blocks:                       # Blocks that are hidden and ray traced. The hidden-blocks specified in the Paper config file are only hidden if they aren't exposed to transparent blocks. If this list is empty, the hidden-blocks specified in the Paper config file are used.
-#       - diamond_ore
-#       - deepslate_diamond_ore
-#       - emerald_ore
-#       - deepslate_emerald_ore
 #   lobby:                                      # Example section for the world lobby. Missing settings are inherited from the default section.
 #     anti-xray:
 #       ray-trace: false                        # Disable ray tracing in the world lobby.
 
 settings:
   anti-xray:
-    update-ticks: 1
+    update-ticks: 2
     ms-per-ray-trace-tick: 50
     ray-trace-threads: 2
 world-settings:
@@ -32,7 +28,7 @@ world-settings:
     anti-xray:
       ray-trace: true
       ray-trace-third-person: false
-      ray-trace-distance: 80.0
+      ray-trace-distance: 120.0
       max-ray-trace-block-count-per-chunk: 100
       rehide-blocks: false
       ray-trace-blocks: []

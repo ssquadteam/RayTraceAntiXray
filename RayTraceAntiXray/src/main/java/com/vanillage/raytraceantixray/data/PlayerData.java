@@ -8,14 +8,13 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R1.entity.CraftEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.util.Vector;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -23,7 +22,7 @@ public final class PlayerData {
     private volatile List<? extends Location> locations;
     private final Map<ChunkPos, ChunkBlocks> chunks = new ConcurrentHashMap<>();
     private final Queue<Result> resultQueue = new ConcurrentLinkedQueue<>();
-    private Callable<?> callable;
+    private Runnable runnable;
 
     public PlayerData(Player player) {
         this(resolveLocations(player, player.getLocation()));
@@ -49,12 +48,12 @@ public final class PlayerData {
         return resultQueue;
     }
 
-    public Callable<?> getCallable() {
-        return callable;
+    public Runnable getRunnable() {
+        return runnable;
     }
 
-    public void setCallable(Callable<?> callable) {
-        this.callable = callable;
+    public void setRunnable(Runnable runnable) {
+        this.runnable = runnable;
     }
 
     public static List<Location> resolveLocations(Player player, Location location) {

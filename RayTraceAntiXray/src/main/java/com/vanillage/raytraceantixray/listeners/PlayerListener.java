@@ -38,7 +38,7 @@ public final class PlayerListener implements Listener {
 
     public static void handleJoin(RayTraceAntiXray plugin, Player player) {
         PlayerData playerData = new PlayerData(player);
-        playerData.setCallable(new RayTraceCallable(playerData));
+        playerData.setRunnable(new RayTraceCallable(playerData));
         plugin.getPlayerData().put(player.getUniqueId(), playerData);
     }
 

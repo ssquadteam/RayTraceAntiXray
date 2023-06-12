@@ -9,7 +9,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import org.bukkit.World;
 import org.bukkit.configuration.Configuration;
-import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
@@ -19,6 +19,7 @@ import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class WorldListener implements Listener {
@@ -47,7 +48,7 @@ public final class WorldListener implements Listener {
             double rayTraceDistance = Math.max(conf.getDouble("world-settings." + w.getName() + ".anti-xray.ray-trace-distance", conf.getDouble("world-settings.default.anti-xray.ray-trace-distance")), 0.);
             int maxRayTraceBlockCountPerChunk = Math.max(conf.getInt("world-settings." + w.getName() + ".anti-xray.max-ray-trace-block-count-per-chunk", conf.getInt("world-settings.default.anti-xray.max-ray-trace-block-count-per-chunk")), 0);
             boolean rehideBlocks = plugin.getConfig().getBoolean("world-settings." + w.getName() + ".anti-xray.rehide-blocks", plugin.getConfig().getBoolean("world-settings.default.anti-xray.rehide-blocks"));
-            List<String> rayTraceBlocks = conf.getList("world-settings." + w.getName() + ".anti-xray.ray-trace-blocks", conf.getList("world-settings.default.anti-xray.ray-trace-blocks")).stream().filter(o -> o != null).map(String::valueOf).collect(Collectors.toList());
+            List<String> rayTraceBlocks = conf.getList("world-settings." + w.getName() + ".anti-xray.ray-trace-blocks", conf.getList("world-settings.default.anti-xray.ray-trace-blocks")).stream().filter(Objects::nonNull).map(String::valueOf).collect(Collectors.toList());
 
             try {
                 Preconditions.checkArgument(!(((CraftWorld) w).getHandle().chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray), "World already has ChunkPacketBlockControllerAntiXray");
