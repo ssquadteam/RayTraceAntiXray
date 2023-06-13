@@ -19,10 +19,10 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.1-R0.1-SNAPSHOT")
 
-    compileOnly("io.papermc.paper:paper-api:1.20-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-mojangapi:1.20-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-mojangapi:1.20.1-R0.1-SNAPSHOT")
     compileOnly("com.mojang:datafixerupper:5.0.28")
     compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }
