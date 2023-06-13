@@ -3,12 +3,13 @@ package com.vanillage.raytraceantixray.tasks;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.util.TimeFormatting;
 
+import java.util.TimerTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public final class RayTraceTimerTask implements Runnable {
+public final class RayTraceTimerTask extends TimerTask {
 
     private final RayTraceAntiXray plugin;
 

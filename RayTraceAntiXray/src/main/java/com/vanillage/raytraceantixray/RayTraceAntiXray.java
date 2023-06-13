@@ -35,6 +35,7 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -43,7 +44,8 @@ public final class RayTraceAntiXray extends JavaPlugin {
     private volatile boolean timingsEnabled = false;
     private final Map<ClientboundLevelChunkWithLightPacket, ChunkBlocks> packetChunkBlocksCache = new MapMaker().weakKeys().makeMap();
     private final Map<UUID, PlayerData> playerData = new ConcurrentHashMap<>();
-    private ScheduledExecutorService executorService;
+    private ExecutorService executorService;
+    private Timer timer;
 
     @Override
     public void onEnable() {
@@ -68,11 +70,12 @@ public final class RayTraceAntiXray extends JavaPlugin {
         running = true;
         int threadCount = Math.max(getConfig().getInt("settings.anti-xray.ray-trace-threads"), 1);
         long interval = Math.max(getConfig().getLong("settings.anti-xray.ms-per-ray-trace-tick"), 1L);
-        executorService = Executors.newScheduledThreadPool(
+        executorService = Executors.newFixedThreadPool(
                 threadCount,
                 new ThreadFactoryBuilder().setNameFormat("raytrace-anti-xray-worker-%d").build()
         );
-        executorService.scheduleAtFixedRate(new RayTraceTimerTask(this), 0L, interval, TimeUnit.MILLISECONDS);
+        timer = new Timer("raytrace-anti-xray-timer", true);
+        timer.scheduleAtFixedRate(new RayTraceTimerTask(this), 0L, interval);
         new UpdateBukkitRunnable(this).runTaskTimer(this, 0L, Math.max(getConfig().getLong("settings.anti-xray.update-ticks"), 1L));
         // Register events.
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
