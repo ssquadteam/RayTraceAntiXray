@@ -24,9 +24,9 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.logging.Level;
 
 public final class RayTraceAntiXray extends JavaPlugin {
     private volatile boolean running = false;
@@ -100,7 +101,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
             executorService.awaitTermination(1000L, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            e.printStackTrace();
+            getLogger().log(Level.WARNING, "Interrupted while shutting down", e);
         }
 
         for (World w : Bukkit.getWorlds()) {
