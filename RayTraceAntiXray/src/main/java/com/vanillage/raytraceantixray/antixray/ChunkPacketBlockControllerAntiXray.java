@@ -81,7 +81,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
         this.rehideBlocks = rehideBlocks;
         this.rehideDistance = rehideDistance;
         this.maxRayTraceBlockCountPerChunk = maxRayTraceBlockCountPerChunk;
-        List<String> toObfuscate;
+        List<Block> toObfuscate;
 
         if (engineMode == EngineMode.HIDE) {
             toObfuscate = paperWorldConfig.hiddenBlocks;
@@ -100,11 +100,9 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             toObfuscate = new ArrayList<>(paperWorldConfig.replacementBlocks);
             List<BlockState> presetBlockStateList = new LinkedList<>();
 
-            for (String id : paperWorldConfig.hiddenBlocks) {
-                Block block = BuiltInRegistries.BLOCK.getOptional(new ResourceLocation(id)).orElse(null);
-
+            for (Block block : paperWorldConfig.hiddenBlocks) {
                 if (block != null && !(block instanceof EntityBlock)) {
-                    toObfuscate.add(id);
+                    toObfuscate.add(block);
                     presetBlockStateList.add(block.defaultBlockState());
                 }
             }
@@ -131,9 +129,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             presetBlockStateBitsEndStoneGlobal = null;
         }
 
-        for (String id : toObfuscate) {
-            Block block = BuiltInRegistries.BLOCK.getOptional(new ResourceLocation(id)).orElse(null);
-
+        for (Block block : toObfuscate) {
             // Don't obfuscate air because air causes unnecessary block updates and causes block updates to fail in the void
             if (block != null && !block.defaultBlockState().isAir()) {
                 // Replace all block states of a specified block
