@@ -3,6 +3,7 @@ package com.vanillage.raytraceantixray.listeners;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.data.VectorialLocation;
+import com.vanillage.raytraceantixray.net.OutboundHandler;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -10,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -18,6 +20,11 @@ public final class PlayerListener implements Listener {
 
     public PlayerListener(RayTraceAntiXray plugin) {
         this.plugin = plugin;
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerLogin(PlayerLoginEvent e) {
+        OutboundHandler.attach(plugin, e.getPlayer(), e.getAddress());
     }
 
     @EventHandler

@@ -1,6 +1,5 @@
 package com.vanillage.raytraceantixray;
 
-import com.comphenix.protocol.ProtocolLibrary;
 import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.google.common.collect.MapMaker;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -9,9 +8,9 @@ import com.vanillage.raytraceantixray.commands.RayTraceAntiXrayTabExecutor;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.data.VectorialLocation;
-import com.vanillage.raytraceantixray.listeners.PacketListener;
 import com.vanillage.raytraceantixray.listeners.PlayerListener;
 import com.vanillage.raytraceantixray.listeners.WorldListener;
+import com.vanillage.raytraceantixray.net.OutboundHandler;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
@@ -37,7 +36,10 @@ import java.io.File;
 import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public final class RayTraceAntiXray extends JavaPlugin {
@@ -58,14 +60,6 @@ public final class RayTraceAntiXray extends JavaPlugin {
         getConfig().options().copyDefaults(true);
         reloadConfig();
 
-        for (World w : Bukkit.getWorlds()) {
-            WorldListener.handleLoad(this, w);
-        }
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            PlayerListener.handleJoin(this, p);
-        }
-
         // saveConfig();
         // Initialize stuff.
         running = true;
@@ -81,17 +75,23 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // Register events.
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
-        ProtocolLibrary.getProtocolManager().addPacketListener(new PacketListener(this));
+
         // registerCommands();
         getCommand("raytraceantixray").setExecutor(new RayTraceAntiXrayTabExecutor(this));
         getLogger().info(getDescription().getFullName() + " enabled");
+
+        // Handle reloads/plugin managers
+        for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            OutboundHandler.attach(this, p);
+            PlayerListener.handleJoin(this, p);
+        }
     }
 
     @Override
     public void onDisable() {
         // unregisterCommands();
         // Cleanup stuff.
-        ProtocolLibrary.getProtocolManager().removePacketListeners(this);
         HandlerList.unregisterAll(this);
 
         running = false;
@@ -107,6 +107,8 @@ public final class RayTraceAntiXray extends JavaPlugin {
         for (World w : Bukkit.getWorlds()) {
             WorldListener.handleUnload(this, w);
         }
+
+        for (Player p : Bukkit.getOnlinePlayers()) OutboundHandler.detach(p);
 
         packetChunkBlocksCache.clear();
         playerData.clear();

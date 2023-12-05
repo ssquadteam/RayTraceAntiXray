@@ -14,7 +14,7 @@ repositories {
     maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
     maven { url = uri("https://hub.spigotmc.org/nexus/content/groups/public/") }
     maven { url = uri("https://libraries.minecraft.net/") }
-    maven { url = uri("https://repo.dmulloy2.net/repository/public/") }
+    //maven { url = uri("https://repo.dmulloy2.net/repository/public/") }
     maven { url = uri("https://repo.maven.apache.org/maven2/") }
 }
 
@@ -24,7 +24,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
     compileOnly("io.papermc.paper:paper-mojangapi:1.20.2-R0.1-SNAPSHOT")
     compileOnly("com.mojang:datafixerupper:5.0.28")
-    compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
+    //compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }
 
 java {
