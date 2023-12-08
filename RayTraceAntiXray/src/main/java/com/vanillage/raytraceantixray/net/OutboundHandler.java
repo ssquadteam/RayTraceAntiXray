@@ -5,34 +5,27 @@ import com.vanillage.raytraceantixray.data.ChunkBlocks;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.data.VectorialLocation;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
-import io.netty.channel.Channel;
+import com.vanillage.raytraceantixray.util.AbstractOutboundHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
-import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.NoSuchElementException;
 
-public class OutboundHandler extends ChannelOutboundHandlerAdapter {
+public class OutboundHandler extends AbstractOutboundHandler {
 
     public static final String NAME = "com.vanillage.raytraceantixray:outbound_handler";
 
     private final RayTraceAntiXray plugin;
     private final Player player;
-    private final Connection connection;
 
-    public OutboundHandler(RayTraceAntiXray plugin, Player player, Connection connection) {
+    public OutboundHandler(RayTraceAntiXray plugin, Player player) {
+        super(NAME);
         this.plugin = plugin;
         this.player = player;
-        this.connection = connection;
     }
 
     @Override
@@ -125,49 +118,6 @@ public class OutboundHandler extends ChannelOutboundHandlerAdapter {
             playerData.getChunks().put(chunkBlocks.getKey(), chunkBlocks);
         }
         return true;
-    }
-
-    public static void attach(RayTraceAntiXray plugin, Player player) {
-        attach(plugin, player, player.getAddress().getAddress());
-    }
-
-    public static void attach(RayTraceAntiXray plugin, Player player, InetAddress address) {
-        var connection = getConnection(address);
-        var channel = getChannel(connection);
-        if (connection != null && channel != null) {
-            detach(address);
-            channel.pipeline().addBefore("packet_handler", NAME, new OutboundHandler(plugin, player, connection));
-        }
-    }
-
-    public static void detach(Player player) {
-        detach(player.getAddress().getAddress());
-    }
-
-    public static void detach(InetAddress address) {
-        var connection = getConnection(address);
-        var channel = getChannel(connection);
-        if (connection != null && channel != null) {
-            try {
-                channel.pipeline().remove(NAME);
-            } catch (NoSuchElementException ignored) {}
-        }
-    }
-
-    public static Connection getConnection(InetAddress address) {
-        for (Connection c : MinecraftServer.getServer().getConnection().getConnections()) {
-            if (c.getRemoteAddress() instanceof InetSocketAddress addr && addr.getAddress() == address) {
-                return c;
-            }
-        }
-        return null;
-    }
-
-    public static Channel getChannel(Connection connection) {
-        if (connection != null && connection.channel != null) {
-            return connection.channel;
-        }
-        return null;
     }
 
 }

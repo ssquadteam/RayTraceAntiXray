@@ -24,7 +24,10 @@ public final class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerLogin(PlayerLoginEvent e) {
-        OutboundHandler.attach(plugin, e.getPlayer(), e.getAddress());
+        if (!e.getPlayer().hasMetadata("NPC")) {
+            new OutboundHandler(plugin, e.getPlayer())
+                    .attach(e.getAddress());
+        }
     }
 
     @EventHandler

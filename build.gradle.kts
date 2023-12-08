@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.vanillage.raytraceantixray"
-version = "1.12.0"
+version = "1.13.0"
 description = "RayTraceAntiXray"
 java.sourceCompatibility = JavaVersion.VERSION_17
 
@@ -19,10 +19,10 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20.2-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT")
 
-    compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
-    compileOnly("io.papermc.paper:paper-mojangapi:1.20.2-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.3-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-mojangapi:1.20.3-R0.1-SNAPSHOT")
     compileOnly("com.mojang:datafixerupper:5.0.28")
     //compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
 }

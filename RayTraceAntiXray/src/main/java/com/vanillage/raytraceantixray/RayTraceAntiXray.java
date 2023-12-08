@@ -23,9 +23,9 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -83,7 +83,8 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // Handle reloads/plugin managers
         for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            OutboundHandler.attach(this, p);
+            new OutboundHandler(this, p)
+                    .attach(p);
             PlayerListener.handleJoin(this, p);
         }
     }
@@ -108,7 +109,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
             WorldListener.handleUnload(this, w);
         }
 
-        for (Player p : Bukkit.getOnlinePlayers()) OutboundHandler.detach(p);
+        for (Player p : Bukkit.getOnlinePlayers()) OutboundHandler.detach(p, OutboundHandler.NAME);
 
         packetChunkBlocksCache.clear();
         playerData.clear();
