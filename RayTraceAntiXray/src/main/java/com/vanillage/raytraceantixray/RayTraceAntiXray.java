@@ -1,6 +1,26 @@
 package com.vanillage.raytraceantixray;
 
+import java.io.File;
+import java.util.Timer;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity;
+import org.bukkit.entity.Entity;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
+
+import com.comphenix.protocol.ProtocolLibrary;
 import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
+import com.google.common.base.Throwables;
 import com.google.common.collect.MapMaker;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
@@ -14,9 +34,12 @@ import com.vanillage.raytraceantixray.net.OutboundHandler;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
+
+import io.papermc.paper.configuration.WorldConfiguration.Anticheat.AntiXray;
 import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -43,12 +66,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public final class RayTraceAntiXray extends JavaPlugin {
+    // private volatile Configuration configuration;
+    private boolean folia = false;
     private volatile boolean running = false;
     private volatile boolean timingsEnabled = false;
-    private final Map<ClientboundLevelChunkWithLightPacket, ChunkBlocks> packetChunkBlocksCache = new MapMaker().weakKeys().makeMap();
-    private final Map<UUID, PlayerData> playerData = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClientboundLevelChunkWithLightPacket, ChunkBlocks> packetChunkBlocksCache = new MapMaker().weakKeys().makeMap();
+    private final ConcurrentMap<UUID, PlayerData> playerData = new ConcurrentHashMap<>();
     private ExecutorService executorService;
     private Timer timer;
+    private long updateTicks = 1L;
 
     @Override
     public void onEnable() {
@@ -57,63 +83,142 @@ public final class RayTraceAntiXray extends JavaPlugin {
         }
 
         saveDefaultConfig();
-        getConfig().options().copyDefaults(true);
+        FileConfiguration config = getConfig();
+        config.options().copyDefaults(true);
         reloadConfig();
 
         // saveConfig();
+        // configuration = config;
         // Initialize stuff.
-        running = true;
-        int threadCount = Math.max(getConfig().getInt("settings.anti-xray.ray-trace-threads"), 1);
-        long interval = Math.max(getConfig().getLong("settings.anti-xray.ms-per-ray-trace-tick"), 1L);
-        executorService = Executors.newFixedThreadPool(
-                threadCount,
-                new ThreadFactoryBuilder().setNameFormat("raytrace-anti-xray-worker-%d").build()
-        );
-        timer = new Timer("raytrace-anti-xray-timer", true);
-        timer.scheduleAtFixedRate(new RayTraceTimerTask(this), 0L, interval);
-        new UpdateBukkitRunnable(this).runTaskTimer(this, 0L, Math.max(getConfig().getLong("settings.anti-xray.update-ticks"), 1L));
-        // Register events.
-        getServer().getPluginManager().registerEvents(new WorldListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
 
-        // registerCommands();
-        getCommand("raytraceantixray").setExecutor(new RayTraceAntiXrayTabExecutor(this));
-        getLogger().info(getDescription().getFullName() + " enabled");
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            folia = true;
+        } catch (ClassNotFoundException e) {
+
+        }
+
+        running = true;
+        // Use a combination of a tick thread (timer) and a ray trace thread pool.
+        // The timer schedules tasks (a task per player) to the thread pool and ensures a common and defined tick start and end time without overlap by waiting for the thread pool to finish all tasks.
+        // A scheduled thread pool with a task per player would also be possible but then there's no common tick.
+        executorService = Executors.newFixedThreadPool(Math.max(config.getInt("settings.anti-xray.ray-trace-threads"), 1), new ThreadFactoryBuilder().setThreadFactory(Executors.defaultThreadFactory()).setNameFormat("RayTraceAntiXray ray trace thread %d").setDaemon(true).build());
+        // Use a timer instead of a single thread scheduled executor because there is no equivalent for the timer's schedule method.
+        timer = new Timer("RayTraceAntiXray tick thread", true);
+        timer.schedule(new RayTraceTimerTask(this), 0L, Math.max(config.getLong("settings.anti-xray.ms-per-ray-trace-tick"), 1L));
+        updateTicks = Math.max(config.getLong("settings.anti-xray.update-ticks"), 1L);
+
+        if (!folia) {
+            new UpdateBukkitRunnable(this).runTaskTimer(this, 0L, updateTicks);
+        }
+
+        // Register events.
+        PluginManager pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(new WorldListener(this), this);
+        pluginManager.registerEvents(new PlayerListener(this), this);
 
         // Handle reloads/plugin managers
         for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
         for (Player p : Bukkit.getOnlinePlayers()) {
+            PlayerListener.handleJoin(this, p);
             new OutboundHandler(this, p)
                     .attach(p);
-            PlayerListener.handleJoin(this, p);
         }
+
+        // registerCommands();
+        getCommand("raytraceantixray").setExecutor(new RayTraceAntiXrayTabExecutor(this));
+        getLogger().info(getPluginMeta().getDisplayName() + " enabled");
     }
 
     @Override
     public void onDisable() {
-        // unregisterCommands();
-        // Cleanup stuff.
         HandlerList.unregisterAll(this);
 
-        running = false;
-        executorService.shutdownNow();
-
+        Throwable throwable = null;
         try {
-            executorService.awaitTermination(1000L, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            getLogger().log(Level.WARNING, "Interrupted while shutting down", e);
+            try {
+                try {
+                    try {
+                        try {
+                            // unregisterCommands();
+                        } catch (Throwable t) {
+                            throwable = t;
+                        } finally {
+                            // Cleanup stuff.
+                            HandlerList.unregisterAll(this);
+                            try {
+                                for (Player p : Bukkit.getOnlinePlayers())
+                                    OutboundHandler.detach(p, OutboundHandler.NAME);
+                            } catch (Throwablt t) {
+                                if (throwable == null) {
+                                    throwable = t;
+                                } else {
+                                    throwable.addSuppressed(t);
+                                }
+                            }
+                        }
+                    } catch (Throwable t) {
+                        if (throwable == null) {
+                            throwable = t;
+                        } else {
+                            throwable.addSuppressed(t);
+                        }
+                    } finally {
+                        running = false;
+                        timer.cancel();
+                    }
+                } catch (Throwable t) {
+                    if (throwable == null) {
+                        throwable = t;
+                    } else {
+                        throwable.addSuppressed(t);
+                    }
+                } finally {
+                    executorService.shutdownNow();
+
+                    try {
+                        executorService.awaitTermination(1000L, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    } finally {
+                        try {
+                            for (World w : Bukkit.getWorlds()) {
+                                WorldListener.handleUnload(this, w);
+                            }
+                        } catch (Throwable t) {
+                            if (throwable == null) {
+                                throwable = t;
+                            } else {
+                                throwable.addSuppressed(t);
+                            }
+                        }
+                    }
+                }
+            } catch (Throwable t) {
+                if (throwable == null) {
+                    throwable = t;
+                } else {
+                    throwable.addSuppressed(t);
+                }
+            } finally {
+                packetChunkBlocksCache.clear();
+                playerData.clear();
+            }
+        } catch (Throwable t) {
+            if (throwable == null) {
+                throwable = t;
+            } else {
+                throwable.addSuppressed(t);
+            }
+        } finally {
+            if (throwable != null) {
+                Throwables.throwIfUnchecked(throwable);
+                throw new RuntimeException(throwable);
+            }
         }
 
-        for (World w : Bukkit.getWorlds()) {
-            WorldListener.handleUnload(this, w);
-        }
-
-        for (Player p : Bukkit.getOnlinePlayers()) OutboundHandler.detach(p, OutboundHandler.NAME);
-
-        packetChunkBlocksCache.clear();
-        playerData.clear();
-        getLogger().info(getDescription().getFullName() + " disabled");
+        getLogger().info(getPluginMeta().getDisplayName() + " disabled");
     }
 
     public void reload() {
@@ -143,11 +248,11 @@ public final class RayTraceAntiXray extends JavaPlugin {
         this.timingsEnabled = timingsEnabled;
     }
 
-    public Map<ClientboundLevelChunkWithLightPacket, ChunkBlocks> getPacketChunkBlocksCache() {
+    public ConcurrentMap<ClientboundLevelChunkWithLightPacket, ChunkBlocks> getPacketChunkBlocksCache() {
         return packetChunkBlocksCache;
     }
 
-    public Map<UUID, PlayerData> getPlayerData() {
+    public ConcurrentMap<UUID, PlayerData> getPlayerData() {
         return playerData;
     }
 
@@ -155,43 +260,63 @@ public final class RayTraceAntiXray extends JavaPlugin {
         return executorService;
     }
 
-    public boolean isEnabled(World world) {
-        return ((CraftWorld) world).getHandle().paperConfig().anticheat.antiXray.enabled && ((CraftWorld) world).getHandle().paperConfig().anticheat.antiXray.engineMode == EngineMode.HIDE && getConfig().getBoolean("world-settings." + world.getName() + ".anti-xray.ray-trace", getConfig().getBoolean("world-settings.default.anti-xray.ray-trace"));
+    public long getUpdateTicks() {
+        return updateTicks;
     }
 
-    public VectorialLocation[] getLocations(Entity entity, VectorialLocation location) {
-        ChunkPacketBlockController chunkPacketBlockController = ((CraftWorld) location.getWorld()).getHandle().chunkPacketBlockController;
+    public boolean isEnabled(World world) {
+        AntiXray antiXray = ((CraftWorld) world).getHandle().paperConfig().anticheat.antiXray;
+
+        if (antiXray.enabled && antiXray.engineMode == EngineMode.HIDE) {
+            FileConfiguration config = getConfig();
+            return config.getBoolean("world-settings." + world.getName() + ".anti-xray.ray-trace", config.getBoolean("world-settings.default.anti-xray.ray-trace"));
+        }
+
+        return false;
+    }
+
+    public static VectorialLocation[] getLocations(Entity entity, VectorialLocation location) {
+        World world = location.getWorld();
+        ChunkPacketBlockController chunkPacketBlockController = ((CraftWorld) world).getHandle().chunkPacketBlockController;
 
         if (chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray && ((ChunkPacketBlockControllerAntiXray) chunkPacketBlockController).rayTraceThirdPerson) {
-            VectorialLocation thirdPersonBackLocation = new VectorialLocation(location.getWorld(), location.getVector().clone(), location.getDirection());
             VectorialLocation thirdPersonFrontLocation = new VectorialLocation(location);
             thirdPersonFrontLocation.getDirection().multiply(-1.);
-            return new VectorialLocation[] { location, move(entity, thirdPersonBackLocation), move(entity, thirdPersonFrontLocation) };
+            return new VectorialLocation[] { location, move(entity, new VectorialLocation(world, location.getVector().clone(), location.getDirection())), move(entity, thirdPersonFrontLocation) };
         }
 
         return new VectorialLocation[] { location };
     }
 
-    private VectorialLocation move(Entity entity, VectorialLocation location) {
+    private static VectorialLocation move(Entity entity, VectorialLocation location) {
         location.getVector().subtract(location.getDirection().clone().multiply(getMaxZoom(entity, location, 4.)));
         return location;
     }
 
-    private double getMaxZoom(Entity entity, VectorialLocation location, double maxZoom) {
+    private static double getMaxZoom(Entity entity, VectorialLocation location, double maxZoom) {
         Vector vector = location.getVector();
-        Vector direction = location.getDirection();
         Vec3 position = new Vec3(vector.getX(), vector.getY(), vector.getZ());
+        double positionX = position.x;
+        double positionY = position.y;
+        double positionZ = position.z;
+        Vector direction = location.getDirection();
+        double directionX = direction.getX();
+        double directionY = direction.getY();
+        double directionZ = direction.getZ();
+        ServerLevel serverLevel = ((CraftWorld) location.getWorld()).getHandle();
+        net.minecraft.world.entity.Entity handle = ((CraftEntity) entity).getHandle();
 
+        // Logic copied from Minecraft client.
         for (int i = 0; i < 8; i++) {
-            float edgeX = (float) ((i & 1) * 2 - 1);
-            float edgeY = (float) ((i >> 1 & 1) * 2 - 1);
-            float edgeZ = (float) ((i >> 2 & 1) * 2 - 1);
-            edgeX *= 0.1f;
-            edgeY *= 0.1f;
-            edgeZ *= 0.1f;
-            Vec3 edge = position.add(edgeX, edgeY, edgeZ);
-            Vec3 edgeMoved = new Vec3(position.x - direction.getX() * maxZoom + (double) edgeX, position.y - direction.getY() * maxZoom + (double) edgeY, position.z - direction.getZ() * maxZoom + (double) edgeZ);
-            BlockHitResult result = ((CraftWorld) location.getWorld()).getHandle().clip(new ClipContext(edge, edgeMoved, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, ((CraftEntity) entity).getHandle()));
+            float cornerX = (float) ((i & 1) * 2 - 1);
+            float cornerY = (float) ((i >> 1 & 1) * 2 - 1);
+            float cornerZ = (float) ((i >> 2 & 1) * 2 - 1);
+            cornerX *= 0.1f;
+            cornerY *= 0.1f;
+            cornerZ *= 0.1f;
+            Vec3 corner = position.add(cornerX, cornerY, cornerZ);
+            Vec3 cornerMoved = new Vec3(positionX - directionX * maxZoom + (double) cornerX, positionY - directionY * maxZoom + (double) cornerY, positionZ - directionZ * maxZoom + (double) cornerZ);
+            BlockHitResult result = serverLevel.clip(new ClipContext(corner, cornerMoved, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, handle));
 
             if (result.getType() != HitResult.Type.MISS) {
                 double zoom = result.getLocation().distanceTo(position);

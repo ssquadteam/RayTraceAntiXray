@@ -24,7 +24,7 @@ public final class RayTraceAntiXrayTabExecutor implements TabExecutor {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-        List<String> completions = new LinkedList<>();
+        LinkedList<String> completions = new LinkedList<>();
 
         if (args.length == 0) {
             if ("raytraceantixray".startsWith(label.toLowerCase(Locale.ROOT))) {

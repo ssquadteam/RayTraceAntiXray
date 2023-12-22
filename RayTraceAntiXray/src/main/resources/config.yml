@@ -46,4 +46,5 @@ world-settings:
       max-ray-trace-block-count-per-chunk: 100
       rehide-blocks: false
       rehide-distance: .inf
+      max-ray-trace-block-count-per-chunk: 120
       ray-trace-blocks: []

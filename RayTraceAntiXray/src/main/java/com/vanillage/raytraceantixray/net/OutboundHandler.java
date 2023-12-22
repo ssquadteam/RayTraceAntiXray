@@ -1,5 +1,14 @@
 package com.vanillage.raytraceantixray.net;
 
+import org.bukkit.Location;
+import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
+import org.bukkit.entity.Player;
+
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.events.ListenerPriority;
+import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.wrappers.ChunkCoordIntPair;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
 import com.vanillage.raytraceantixray.data.PlayerData;
@@ -53,7 +62,6 @@ public class OutboundHandler extends AbstractOutboundHandler {
             // For similar reasons, we also handle chunk unloads via packet events below.
             // Everywhere else we have to check if the player's world still matches the world of the player data instance before we use it.
             // (See for example the move event.)
-            PlayerData playerData = plugin.getPlayerData().get(player.getUniqueId());
             // Get the result from Anti-Xray for the current chunk packet.
             // We can't remove the entry because the same chunk packet can be sent to multiple players.
             // The garbage collector will remove the entry later since we're using a weak key map.
@@ -64,14 +72,16 @@ public class OutboundHandler extends AbstractOutboundHandler {
                 // We can't determine the world from the chunk packet in this case.
                 // Thus we use the player's current (more up to date) world instead.
                 Location location = player.getEyeLocation();
+                ConcurrentMap<UUID, PlayerData> playerDataMap = plugin.getPlayerData();
+                UUID uniqueId = player.getUniqueId();
 
-                if (!location.getWorld().equals(playerData.getLocations()[0].getWorld())) {
+                if (!location.getWorld().equals(playerDataMap.get(uniqueId).getLocations()[0].getWorld())) {
                     // Detected a world change.
                     // In the event order listing above, this corresponds to (4) when RayTraceAntiXray is disabled in world B.
                     // The player's current world is world B since (2).
-                    playerData = new PlayerData(plugin.getLocations(player, new VectorialLocation(location)));
-                    playerData.setCallable(new RayTraceCallable(playerData));
-                    plugin.getPlayerData().put(player.getUniqueId(), playerData);
+                    PlayerData playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(location)));
+                    playerData.setCallable(new RayTraceCallable(plugin, playerData));
+                    playerDataMap.put(uniqueId, playerData);
                 }
 
                 return true;
@@ -87,12 +97,17 @@ public class OutboundHandler extends AbstractOutboundHandler {
                 return true;
             }
 
-            if (!chunk.getLevel().getWorld().equals(playerData.getLocations()[0].getWorld())) {
+            CraftWorld world = chunk.getLevel().getWorld();
+            ConcurrentMap<UUID, PlayerData> playerDataMap = plugin.getPlayerData();
+            UUID uniqueId = player.getUniqueId();
+            PlayerData playerData = playerDataMap.get(uniqueId);
+
+            if (!world.equals(playerData.getLocations()[0].getWorld())) {
                 // Detected a world change.
                 // We need the player's current location to construct a new player data instance.
-                Location location = player.getEyeLocation();
+                Location location = event.getPlayer().getEyeLocation();
 
-                if (!chunk.getLevel().getWorld().equals(location.getWorld())) {
+                if (!world.equals(location.getWorld())) {
                     // The player has changed the world again since this chunk packet was sent.
                     // (As described above, packets can be delayed.)
                     // Example event order for this case:
@@ -108,9 +123,9 @@ public class OutboundHandler extends AbstractOutboundHandler {
                 }
 
                 // Renew the player data instance.
-                playerData = new PlayerData(plugin.getLocations(player, new VectorialLocation(location)));
-                playerData.setCallable(new RayTraceCallable(playerData));
-                plugin.getPlayerData().put(player.getUniqueId(), playerData);
+                playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(location)));
+                playerData.setCallable(new RayTraceCallable(plugin, playerData));
+                playerDataMap.put(uniqueId, playerData);
             }
 
             // We need to copy the chunk blocks because the same chunk packet could have been sent to multiple players.
