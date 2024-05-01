@@ -1,5 +1,7 @@
 package com.vanillage.raytraceantixray.listeners;
 
+import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
+import com.vanillage.raytraceantixray.util.BukkitUtil;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,7 +29,7 @@ public final class PlayerListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerLogin(PlayerLoginEvent e) {
         if (!e.getPlayer().hasMetadata("NPC")) {
-            new OutboundHandler(plugin, e.getPlayer())
+            new DuplexHandlerImpl(plugin, e.getPlayer())
                     .attach(e.getAddress());
         }
     }
@@ -61,7 +63,7 @@ public final class PlayerListener implements Listener {
         playerData.setCallable(new RayTraceCallable(plugin, playerData));
         plugin.getPlayerData().put(player.getUniqueId(), playerData);
 
-        if (plugin.isFolia()) {
+        if (BukkitUtil.IS_FOLIA) {
             player.getScheduler().runAtFixedRate(plugin, new UpdateBukkitRunnable(plugin, player), null, 1L, plugin.getUpdateTicks());
         }
     }

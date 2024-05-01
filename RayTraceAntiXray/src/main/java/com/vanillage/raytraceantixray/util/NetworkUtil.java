@@ -69,11 +69,11 @@ public class NetworkUtil {
     }
 
     public static Channel getChannelOrThrow(Connection connection) {
-        return Objects.requireNonNull(connection.channel, "Channel is null");
+        return Objects.requireNonNull(connection.channel, "Channel is null for address: " + connection.getRemoteAddress());
     }
 
     public static Connection getServerConnectionOrThrow(InetAddress address) {
-        return Objects.requireNonNull(getServerConnection(address), "Failed to find connection of: " + address);
+        return Objects.requireNonNull(getServerConnection(address), "Connection not found for address: " + address);
     }
 
     public static Connection getServerConnection(InetAddress address) {

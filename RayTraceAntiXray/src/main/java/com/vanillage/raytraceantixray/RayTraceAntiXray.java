@@ -1,24 +1,5 @@
 package com.vanillage.raytraceantixray;
 
-import java.io.File;
-import java.util.Timer;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.bukkit.World;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity;
-import org.bukkit.entity.Entity;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Vector;
-
-import com.comphenix.protocol.ProtocolLibrary;
 import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.google.common.base.Throwables;
 import com.google.common.collect.MapMaker;
@@ -30,44 +11,40 @@ import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.data.VectorialLocation;
 import com.vanillage.raytraceantixray.listeners.PlayerListener;
 import com.vanillage.raytraceantixray.listeners.WorldListener;
-import com.vanillage.raytraceantixray.net.OutboundHandler;
+import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
+import com.vanillage.raytraceantixray.util.BukkitUtil;
 import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
-
 import io.papermc.paper.configuration.WorldConfiguration.Anticheat.AntiXray;
 import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 import java.io.File;
-import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import java.util.concurrent.*;
 
 public final class RayTraceAntiXray extends JavaPlugin {
     // private volatile Configuration configuration;
-    private boolean folia = false;
     private volatile boolean running = false;
     private volatile boolean timingsEnabled = false;
     private final ConcurrentMap<ClientboundLevelChunkWithLightPacket, ChunkBlocks> packetChunkBlocksCache = new MapMaker().weakKeys().makeMap();
@@ -91,13 +68,6 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // configuration = config;
         // Initialize stuff.
 
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            folia = true;
-        } catch (ClassNotFoundException e) {
-
-        }
-
         running = true;
         // Use a combination of a tick thread (timer) and a ray trace thread pool.
         // The timer schedules tasks (a task per player) to the thread pool and ensures a common and defined tick start and end time without overlap by waiting for the thread pool to finish all tasks.
@@ -108,7 +78,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
         timer.schedule(new RayTraceTimerTask(this), 0L, Math.max(config.getLong("settings.anti-xray.ms-per-ray-trace-tick"), 1L));
         updateTicks = Math.max(config.getLong("settings.anti-xray.update-ticks"), 1L);
 
-        if (!folia) {
+        if (!BukkitUtil.IS_FOLIA) {
             new UpdateBukkitRunnable(this).runTaskTimer(this, 0L, updateTicks);
         }
 
@@ -121,7 +91,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
         for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
         for (Player p : Bukkit.getOnlinePlayers()) {
             PlayerListener.handleJoin(this, p);
-            new OutboundHandler(this, p)
+            new DuplexHandlerImpl(this, p)
                     .attach(p);
         }
 
@@ -148,8 +118,8 @@ public final class RayTraceAntiXray extends JavaPlugin {
                             HandlerList.unregisterAll(this);
                             try {
                                 for (Player p : Bukkit.getOnlinePlayers())
-                                    OutboundHandler.detach(p, OutboundHandler.NAME);
-                            } catch (Throwablt t) {
+                                    DuplexHandlerImpl.detach(p, DuplexHandlerImpl.NAME);
+                            } catch (Throwable t) {
                                 if (throwable == null) {
                                     throwable = t;
                                 } else {

@@ -1,37 +1,31 @@
 package com.vanillage.raytraceantixray.net;
 
-import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
-import org.bukkit.entity.Player;
-
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.wrappers.ChunkCoordIntPair;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.data.VectorialLocation;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
-import com.vanillage.raytraceantixray.util.AbstractOutboundHandler;
+import com.vanillage.raytraceantixray.util.DuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.Location;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 
-public class OutboundHandler extends AbstractOutboundHandler {
+public class DuplexHandlerImpl extends DuplexHandler {
 
-    public static final String NAME = "com.vanillage.raytraceantixray:outbound_handler";
+    public static final String NAME = "com.vanillage.raytraceantixray:duplex_handler";
 
     private final RayTraceAntiXray plugin;
     private final Player player;
 
-    public OutboundHandler(RayTraceAntiXray plugin, Player player) {
+    public DuplexHandlerImpl(RayTraceAntiXray plugin, Player player) {
         super(NAME);
         this.plugin = plugin;
         this.player = player;
@@ -105,7 +99,7 @@ public class OutboundHandler extends AbstractOutboundHandler {
             if (!world.equals(playerData.getLocations()[0].getWorld())) {
                 // Detected a world change.
                 // We need the player's current location to construct a new player data instance.
-                Location location = event.getPlayer().getEyeLocation();
+                Location location = player.getEyeLocation();
 
                 if (!world.equals(location.getWorld())) {
                     // The player has changed the world again since this chunk packet was sent.

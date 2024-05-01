@@ -2,7 +2,7 @@ package com.vanillage.raytraceantixray.util;
 
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_20_R3.CraftServer;
+import org.bukkit.craftbukkit.CraftServer;
 
 public class BukkitUtil {
 

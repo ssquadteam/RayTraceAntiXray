@@ -1,24 +1,23 @@
 package com.vanillage.raytraceantixray.listeners;
 
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
+import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
+import com.vanillage.raytraceantixray.RayTraceAntiXray;
+import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
-import com.vanillage.raytraceantixray.RayTraceAntiXray;
-import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
-
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class WorldListener implements Listener {
     private final RayTraceAntiXray plugin;
