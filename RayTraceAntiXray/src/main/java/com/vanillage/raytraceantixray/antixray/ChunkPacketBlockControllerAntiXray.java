@@ -8,16 +8,6 @@ import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
 import io.papermc.paper.configuration.WorldConfiguration;
 import io.papermc.paper.configuration.type.EngineMode;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.IntSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -36,13 +26,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.EmptyLevelChunk;
-import net.minecraft.world.level.chunk.GlobalPalette;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.MissingPaletteEntryException;
-import net.minecraft.world.level.chunk.Palette;
+import net.minecraft.world.level.chunk.*;
 import org.bukkit.Bukkit;
+
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntSupplier;
 
 public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockController {
 
@@ -157,7 +147,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
             traceGlobal = new boolean[Block.BLOCK_STATE_REGISTRY.size()];
 
             for (String id : toTrace) {
-                Block block = BuiltInRegistries.BLOCK.getOptional(new ResourceLocation(id)).orElse(null);
+                Block block = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.tryParse(id)).orElse(null);
 
                 // Don't obfuscate air because air causes unnecessary block updates and causes block updates to fail in the void
                 if (block != null && !block.defaultBlockState().isAir()) {

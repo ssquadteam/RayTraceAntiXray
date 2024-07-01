@@ -15,7 +15,6 @@ import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 import com.vanillage.raytraceantixray.util.BukkitUtil;
-import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
 import io.papermc.paper.configuration.WorldConfiguration.Anticheat.AntiXray;
 import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
@@ -200,7 +199,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
     public void reloadChunks(Iterable<Player> players) {
         for (Player bp : players) {
             ServerPlayer p = ((CraftPlayer) bp).getHandle();
-            RegionizedPlayerChunkLoader playerChunkManager = p.serverLevel().getChunkSource().chunkMap.level.playerChunkLoader;
+            var playerChunkManager = p.serverLevel().getChunkSource().chunkMap.level.moonrise$getPlayerChunkLoader();
             playerChunkManager.removePlayer(p);
             playerChunkManager.addPlayer(p);
         }
