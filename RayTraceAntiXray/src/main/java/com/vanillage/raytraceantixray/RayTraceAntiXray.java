@@ -89,6 +89,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // Handle reloads/plugin managers
         for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
         for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.hasMetadata("NPC")) continue;
             PlayerListener.handleJoin(this, p);
             new DuplexHandlerImpl(this, p)
                     .attach(p);
@@ -116,8 +117,10 @@ public final class RayTraceAntiXray extends JavaPlugin {
                             // Cleanup stuff.
                             HandlerList.unregisterAll(this);
                             try {
-                                for (Player p : Bukkit.getOnlinePlayers())
+                                for (Player p : Bukkit.getOnlinePlayers()) {
+                                    if (p.hasMetadata("NPC")) continue;
                                     DuplexHandlerImpl.detach(p, DuplexHandlerImpl.NAME);
+                                }
                             } catch (Throwable t) {
                                 if (throwable == null) {
                                     throwable = t;
