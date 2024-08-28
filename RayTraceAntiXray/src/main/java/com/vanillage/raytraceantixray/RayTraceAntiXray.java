@@ -12,6 +12,7 @@ import com.vanillage.raytraceantixray.data.VectorialLocation;
 import com.vanillage.raytraceantixray.listeners.PlayerListener;
 import com.vanillage.raytraceantixray.listeners.WorldListener;
 import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
+import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 import com.vanillage.raytraceantixray.util.BukkitUtil;
@@ -89,7 +90,10 @@ public final class RayTraceAntiXray extends JavaPlugin {
         // Handle reloads/plugin managers
         for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            PlayerListener.handleJoin(this, p);
+            PlayerData data = new PlayerData(getLocations(p, new VectorialLocation(p.getLocation())));
+            data.setCallable(new RayTraceCallable(this, data));
+            getPlayerData().put(p.getUniqueId(), data);
+
             if (!p.hasMetadata("NPC")) {
                 new DuplexHandlerImpl(this, p)
                         .attach(p);
@@ -110,23 +114,17 @@ public final class RayTraceAntiXray extends JavaPlugin {
             try {
                 try {
                     try {
+                        // Cleanup stuff.
                         try {
-                            // unregisterCommands();
+                            for (Player p : Bukkit.getOnlinePlayers()) {
+                                if (p.hasMetadata("NPC")) continue;
+                                DuplexHandlerImpl.detach(p, DuplexHandlerImpl.NAME);
+                            }
                         } catch (Throwable t) {
-                            throwable = t;
-                        } finally {
-                            // Cleanup stuff.
-                            try {
-                                for (Player p : Bukkit.getOnlinePlayers()) {
-                                    if (p.hasMetadata("NPC")) continue;
-                                    DuplexHandlerImpl.detach(p, DuplexHandlerImpl.NAME);
-                                }
-                            } catch (Throwable t) {
-                                if (throwable == null) {
-                                    throwable = t;
-                                } else {
-                                    throwable.addSuppressed(t);
-                                }
+                            if (throwable == null) {
+                                throwable = t;
+                            } else {
+                                throwable.addSuppressed(t);
                             }
                         }
                     } catch (Throwable t) {
@@ -201,6 +199,10 @@ public final class RayTraceAntiXray extends JavaPlugin {
 
     public void reloadChunks(Iterable<Player> players) {
         for (Player bp : players) {
+            PlayerData data = new PlayerData(getLocations(bp, new VectorialLocation(bp.getLocation())));
+            data.setCallable(new RayTraceCallable(this, data));
+            getPlayerData().put(bp.getUniqueId(), data);
+
             ServerPlayer p = ((CraftPlayer) bp).getHandle();
             var playerChunkManager = p.serverLevel().getChunkSource().chunkMap.level.moonrise$getPlayerChunkLoader();
             playerChunkManager.removePlayer(p);

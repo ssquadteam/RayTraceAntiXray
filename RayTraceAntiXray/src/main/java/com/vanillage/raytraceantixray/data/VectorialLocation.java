@@ -1,11 +1,12 @@
 package com.vanillage.raytraceantixray.data;
 
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
-
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
+
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
+import java.util.Objects;
 
 public final class VectorialLocation {
     private final Reference<World> world;
@@ -39,4 +40,18 @@ public final class VectorialLocation {
     public Vector getDirection() {
         return direction;
     }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
+        VectorialLocation that = (VectorialLocation) object;
+        return Objects.equals(vector, that.vector) && Objects.equals(direction, that.direction) && Objects.equals(world, that.world);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(world, vector, direction);
+    }
+
 }

@@ -2,13 +2,16 @@ package com.vanillage.raytraceantixray.net;
 
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
+import com.vanillage.raytraceantixray.data.LongWrapper;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.data.VectorialLocation;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import com.vanillage.raytraceantixray.util.DuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import net.minecraft.network.protocol.game.ClientboundForgetLevelChunkPacket;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftWorld;
@@ -125,6 +128,18 @@ public class DuplexHandlerImpl extends DuplexHandler {
             // We need to copy the chunk blocks because the same chunk packet could have been sent to multiple players.
             chunkBlocks = new ChunkBlocks(chunk, new HashMap<>(chunkBlocks.getBlocks()));
             playerData.getChunks().put(chunkBlocks.getKey(), chunkBlocks);
+        } else if (msg instanceof ClientboundForgetLevelChunkPacket packet) {
+            // Note that chunk unload packets aren't sent on world change and on respawn.
+            // World changes are already handled below.
+            plugin.getPlayerData().get(player.getUniqueId())
+                    .getChunks().remove(new LongWrapper(packet.pos().toLong()));
+        } else if (msg instanceof ClientboundRespawnPacket) {
+            // As with world changes, chunk unload packets aren't sent on respawn.
+            // All required chunks are (re)sent afterwards.
+            // Thus we clear the chunks.
+            // If respawning involves a world change, it will be handled in the next chunk packet event.
+            plugin.getPlayerData().get(player.getUniqueId())
+                    .getChunks().clear();
         }
         return true;
     }

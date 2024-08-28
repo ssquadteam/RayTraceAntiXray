@@ -17,6 +17,7 @@ import net.minecraft.world.level.chunk.MissingPaletteEntryException;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.util.Vector;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -36,6 +37,8 @@ public final class RayTraceCallable implements Callable<Void> {
     private final double rayTraceDistanceSquared;
     private final boolean rehideBlocks;
     private final double rehideDistanceSquared;
+
+    private volatile VectorialLocation[] tracedLocations = null;
 
     public RayTraceCallable(RayTraceAntiXray plugin, PlayerData playerData) {
         this.plugin = plugin;
@@ -228,6 +231,15 @@ public final class RayTraceCallable implements Callable<Void> {
 
     @Override
     public Void call() {
+        VectorialLocation[] locations = playerData.getLocations();
+        if (Arrays.equals(tracedLocations, locations)) {
+            // we already did raytracing for these locations
+            return null;
+        }
+
+        // set before rayTrace to avoid constantly trying if error thrown.
+        tracedLocations = locations;
+
         try {
             rayTrace();
         } catch (Throwable t) {
