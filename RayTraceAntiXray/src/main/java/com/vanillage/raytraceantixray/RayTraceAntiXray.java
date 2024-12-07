@@ -250,13 +250,13 @@ public final class RayTraceAntiXray extends JavaPlugin {
     }
 
     public static VectorialLocation[] getLocations(Entity entity, VectorialLocation location) {
-        World world = location.getWorld();
+        World world = entity.getWorld();
         ChunkPacketBlockController chunkPacketBlockController = ((CraftWorld) world).getHandle().chunkPacketBlockController;
 
         if (chunkPacketBlockController instanceof ChunkPacketBlockControllerAntiXray && ((ChunkPacketBlockControllerAntiXray) chunkPacketBlockController).rayTraceThirdPerson) {
             VectorialLocation thirdPersonFrontLocation = new VectorialLocation(location);
             thirdPersonFrontLocation.getDirection().multiply(-1.);
-            return new VectorialLocation[] { location, move(entity, new VectorialLocation(world, location.getVector().clone(), location.getDirection())), move(entity, thirdPersonFrontLocation) };
+            return new VectorialLocation[] { location, move(entity, new VectorialLocation(world, location.getVector().clone(), location.getDirection().clone())), move(entity, thirdPersonFrontLocation) };
         }
 
         return new VectorialLocation[] { location };
