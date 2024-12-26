@@ -1,11 +1,12 @@
 package com.vanillage.raytraceantixray.antixray;
 
-import com.destroystokyo.paper.antixray.BitStorageReader;
-import com.destroystokyo.paper.antixray.BitStorageWriter;
-import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
-import com.destroystokyo.paper.antixray.ChunkPacketInfo;
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
+
+import io.papermc.paper.antixray.BitStorageReader;
+import io.papermc.paper.antixray.BitStorageWriter;
+import io.papermc.paper.antixray.ChunkPacketBlockController;
+import io.papermc.paper.antixray.ChunkPacketInfo;
 import io.papermc.paper.configuration.WorldConfiguration;
 import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.core.BlockPos;
@@ -496,10 +497,10 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
         chunkPacketInfoAntiXray.getChunkPacket().setReady(true);
     }
 
-    private void obfuscateLayer(ChunkPos chunkPos, int minSection, int chunkSectionIndex, int y, BitStorageReader bitStorageReader, BitStorageWriter bitStorageWriter, boolean[] solid, boolean[] obfuscate, boolean[] trace, boolean[] blockEntity, int[] presetBlockStateBits, boolean[][] current, boolean[][] next, boolean[][] nextNext, boolean[][] traceCache, boolean[][] blockEntityCache, LevelChunkSection[] nearbyChunkSections, IntSupplier random, Map<? super BlockPos, ? super Boolean> blocks, Set<? super BlockPos> blockEntities) {
+    private void obfuscateLayer(ChunkPos chunkPos, int minSectionY, int chunkSectionIndex, int y, BitStorageReader bitStorageReader, BitStorageWriter bitStorageWriter, boolean[] solid, boolean[] obfuscate, boolean[] trace, boolean[] blockEntity, int[] presetBlockStateBits, boolean[][] current, boolean[][] next, boolean[][] nextNext, boolean[][] traceCache, boolean[][] blockEntityCache, LevelChunkSection[] nearbyChunkSections, IntSupplier random, Map<? super BlockPos, ? super Boolean> blocks, Set<? super BlockPos> blockEntities) {
         int minX = chunkPos.getMinBlockX();
         int minZ = chunkPos.getMinBlockZ();
-        int realY = (chunkSectionIndex + minSection << 4) + y;
+        int realY = (chunkSectionIndex + minSectionY << 4) + y;
         // First block of first line
         int bits = bitStorageReader.read();
 

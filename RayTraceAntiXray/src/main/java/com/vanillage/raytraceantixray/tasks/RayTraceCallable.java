@@ -1,12 +1,24 @@
 package com.vanillage.raytraceantixray.tasks;
 
-import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
+
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.util.Vector;
+
 import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.antixray.ChunkPacketBlockControllerAntiXray;
 import com.vanillage.raytraceantixray.data.*;
 import com.vanillage.raytraceantixray.util.BlockIterator;
 import com.vanillage.raytraceantixray.util.BlockOcclusionCulling;
 import com.vanillage.raytraceantixray.util.BlockOcclusionCulling.BlockOcclusionGetter;
+
+import io.papermc.paper.antixray.ChunkPacketBlockController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
@@ -88,13 +100,13 @@ public final class RayTraceCallable implements Callable<Void> {
                     }
 
                     int sectionY = y >> 4;
-                    int minSection = chunk.getMinSectionY();
+                    int minSectionY = chunk.getMinSectionY();
 
-                    if (sectionY < minSection || sectionY >= chunk.getMaxSectionY()) {
+                    if (sectionY < minSectionY || sectionY >= chunk.getMaxSectionY()) {
                         return false;
                     }
 
-                    LevelChunkSection section = chunk.getSections()[sectionY - minSection];
+                    LevelChunkSection section = chunk.getSections()[sectionY - minSectionY];
                     return section != null && !section.hasOnlyAir() && solidGlobal[ChunkPacketBlockControllerAntiXray.GLOBAL_BLOCKSTATE_PALETTE.idFor(getBlockState(section, x, y, z))]; // Sections aren't null anymore. Unfortunately, LevelChunkSection#recalcBlockCounts() temporarily resets #nonEmptyBlockCount to 0 due to a Paper optimization.
                 }
 
@@ -105,13 +117,13 @@ public final class RayTraceCallable implements Callable<Void> {
                         return UNLOADED_OCCLUDING;
                     }
 
-                    int minSection = chunk.getMinSectionY();
+                    int minSectionY = chunk.getMinSectionY();
 
-                    if (sectionY < minSection || sectionY >= chunk.getMaxSectionY()) {
+                    if (sectionY < minSectionY || sectionY >= chunk.getMaxSectionY()) {
                         return false;
                     }
 
-                    LevelChunkSection section = chunk.getSections()[sectionY - minSection];
+                    LevelChunkSection section = chunk.getSections()[sectionY - minSectionY];
                     return section != null && !section.hasOnlyAir() && solidGlobal[ChunkPacketBlockControllerAntiXray.GLOBAL_BLOCKSTATE_PALETTE.idFor(getBlockState(section, x, y, z))]; // Sections aren't null anymore. Unfortunately, LevelChunkSection#recalcBlockCounts() temporarily resets #nonEmptyBlockCount to 0 due to a Paper optimization.
                 }
 
@@ -148,14 +160,14 @@ public final class RayTraceCallable implements Callable<Void> {
                         return UNLOADED_OCCLUDING;
                     }
 
-                    int minSection = chunk.getMinSectionY();
+                    int minSectionY = chunk.getMinSectionY();
 
-                    if (sectionY < minSection || sectionY >= chunk.getMaxSectionY()) {
+                    if (sectionY < minSectionY || sectionY >= chunk.getMaxSectionY()) {
                         section = null;
                         return false;
                     }
 
-                    section = chunk.getSections()[sectionY - minSection];
+                    section = chunk.getSections()[sectionY - minSectionY];
 
                     if (section == null) { // Sections aren't null anymore.
                         return false;
@@ -177,14 +189,14 @@ public final class RayTraceCallable implements Callable<Void> {
                         return UNLOADED_OCCLUDING;
                     }
 
-                    int minSection = chunk.getMinSectionY();
+                    int minSectionY = chunk.getMinSectionY();
 
-                    if (sectionY < minSection || sectionY >= chunk.getMaxSectionY()) {
+                    if (sectionY < minSectionY || sectionY >= chunk.getMaxSectionY()) {
                         section = null;
                         return false;
                     }
 
-                    section = chunk.getSections()[sectionY - minSection];
+                    section = chunk.getSections()[sectionY - minSectionY];
 
                     if (section == null) { // Sections aren't null anymore.
                         return false;

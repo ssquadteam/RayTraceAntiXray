@@ -1,6 +1,5 @@
 package com.vanillage.raytraceantixray;
 
-import com.destroystokyo.paper.antixray.ChunkPacketBlockController;
 import com.google.common.base.Throwables;
 import com.google.common.collect.MapMaker;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -15,6 +14,8 @@ import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
+
+import io.papermc.paper.antixray.ChunkPacketBlockController;
 import com.vanillage.raytraceantixray.util.BukkitUtil;
 import io.papermc.paper.configuration.WorldConfiguration.Anticheat.AntiXray;
 import io.papermc.paper.configuration.type.EngineMode;
