@@ -7,6 +7,7 @@ import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 import com.vanillage.raytraceantixray.util.BukkitUtil;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -23,7 +24,7 @@ public final class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerLogin(PlayerLoginEvent e) {
-        if (!e.getPlayer().hasMetadata("NPC")) {
+        if (plugin.validatePlayer(e.getPlayer())) {
             new DuplexHandlerImpl(plugin, e.getPlayer())
                     .attach(e.getAddress());
         }
@@ -31,7 +32,13 @@ public final class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        PlayerData playerData = new PlayerData(RayTraceAntiXray.getLocations(event.getPlayer(), new VectorialLocation(event.getPlayer().getEyeLocation())));
+        Player player = event.getPlayer();
+
+        if (!plugin.validatePlayer(player)) {
+            return;
+        }
+
+        PlayerData playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(player.getEyeLocation())));
         playerData.setCallable(new RayTraceCallable(plugin, playerData));
         plugin.getPlayerData().put(event.getPlayer().getUniqueId(), playerData);
 

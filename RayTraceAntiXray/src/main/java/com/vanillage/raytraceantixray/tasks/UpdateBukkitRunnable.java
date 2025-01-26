@@ -57,6 +57,9 @@ public final class UpdateBukkitRunnable extends BukkitRunnable implements Consum
 
     public void update(Player player) {
         PlayerData playerData = plugin.getPlayerData().get(player.getUniqueId());
+        if (playerData == null)
+            return; // NPCs don't get added to the playerdata map.
+
         World world = playerData.getLocations()[0].getWorld();
 
         if (!player.getWorld().equals(world)) {

@@ -3,6 +3,6 @@ rootProject.name = "raytraceantixray"
 pluginManagement {
     repositories {
         gradlePluginPortal()
-        maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
+        maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
     }
 }

@@ -11,8 +11,8 @@ java.sourceCompatibility = JavaVersion.VERSION_21
 repositories {
     mavenCentral()
     mavenLocal()
-    maven { url = uri("https://papermc.io/repo/repository/maven-public/") }
-    maven { url = uri("https://papermc.io/repo/repository/maven-snapshots/") }
+    maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+    maven { url = uri("https://repo.papermc.io/repository/maven-snapshots/") }
     maven { url = uri("https://hub.spigotmc.org/nexus/content/groups/public/") }
     maven { url = uri("https://libraries.minecraft.net/") }
     //maven { url = uri("https://repo.dmulloy2.net/repository/public/") }

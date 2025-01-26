@@ -14,9 +14,8 @@ import com.vanillage.raytraceantixray.net.DuplexHandlerImpl;
 import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import com.vanillage.raytraceantixray.tasks.RayTraceTimerTask;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
-
-import io.papermc.paper.antixray.ChunkPacketBlockController;
 import com.vanillage.raytraceantixray.util.BukkitUtil;
+import io.papermc.paper.antixray.ChunkPacketBlockController;
 import io.papermc.paper.configuration.WorldConfiguration.Anticheat.AntiXray;
 import io.papermc.paper.configuration.type.EngineMode;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
@@ -89,16 +88,17 @@ public final class RayTraceAntiXray extends JavaPlugin {
         pluginManager.registerEvents(new PlayerListener(this), this);
 
         // Handle reloads/plugin managers
-        for (World w : Bukkit.getWorlds()) WorldListener.handleLoad(this, w);
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            PlayerData data = new PlayerData(getLocations(p, new VectorialLocation(p.getLocation())));
-            data.setCallable(new RayTraceCallable(this, data));
-            getPlayerData().put(p.getUniqueId(), data);
+        for (World w : Bukkit.getWorlds())
+            WorldListener.handleLoad(this, w);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!validatePlayer(player))
+                continue;
 
-            if (!p.hasMetadata("NPC")) {
-                new DuplexHandlerImpl(this, p)
-                        .attach(p);
-            }
+            PlayerData data = new PlayerData(getLocations(player, new VectorialLocation(player.getLocation())));
+            data.setCallable(new RayTraceCallable(this, data));
+            getPlayerData().put(player.getUniqueId(), data);
+            new DuplexHandlerImpl(this, player)
+                    .attach(player);
         }
 
         // registerCommands();
@@ -109,7 +109,17 @@ public final class RayTraceAntiXray extends JavaPlugin {
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(this);
-
+        // The server catches all throwables and may continue to run after disabling this plugin.
+        // We want to ensure as much as possible that everything is left behind in a clean and defined state.
+        // So the goal is to at least attempt to execute all critical sections of code, regardless of what happens before.
+        // Considering errors during error handling and JLS 11.1.3. Asynchronous Exceptions, throwables could potentially be thrown anywhere (even between blocks of code or statements?).
+        // Thus the only way is to nest try-finally statements like this: try { try { } finally { } } finally { }
+        // According to the bytecode of nested try-catch statements in JVMS 3.12, all nested try blocks are entered at the same time.
+        // So we either reach the innermost try block, in which case all blocks will be at least attempt to be executed, or no block is entered at all (e.g. in case of a throwable being thrown before).
+        // Both outcomes yield a defined state of this plugin.
+        // A more intuitive way would be to nest inside of the finally clause like this: try { } finally { try { } finally { } }
+        // However, this doesn't provide the same guarantees as described above.
+        // Additionally, we can add catch clauses to collect suppressed exceptions and rethrow in the last finally clause.
         Throwable throwable = null;
         try {
             try {
@@ -248,6 +258,10 @@ public final class RayTraceAntiXray extends JavaPlugin {
         }
 
         return false;
+    }
+
+    public boolean validatePlayer(Player player) {
+        return !player.hasMetadata("NPC");
     }
 
     public static VectorialLocation[] getLocations(Entity entity, VectorialLocation location) {

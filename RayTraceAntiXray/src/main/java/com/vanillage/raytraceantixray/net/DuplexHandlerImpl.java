@@ -71,12 +71,13 @@ public class DuplexHandlerImpl extends DuplexHandler {
                 Location location = player.getEyeLocation();
                 ConcurrentMap<UUID, PlayerData> playerDataMap = plugin.getPlayerData();
                 UUID uniqueId = player.getUniqueId();
+                PlayerData playerData = playerDataMap.get(uniqueId);
 
-                if (!location.getWorld().equals(playerDataMap.get(uniqueId).getLocations()[0].getWorld())) {
+                if (!location.getWorld().equals(playerData.getLocations()[0].getWorld())) {
                     // Detected a world change.
                     // In the event order listing above, this corresponds to (4) when RayTraceAntiXray is disabled in world B.
                     // The player's current world is world B since (2).
-                    PlayerData playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(location)));
+                    playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(location)));
                     playerData.setCallable(new RayTraceCallable(plugin, playerData));
                     playerDataMap.put(uniqueId, playerData);
                 }
@@ -98,7 +99,6 @@ public class DuplexHandlerImpl extends DuplexHandler {
             ConcurrentMap<UUID, PlayerData> playerDataMap = plugin.getPlayerData();
             UUID uniqueId = player.getUniqueId();
             PlayerData playerData = playerDataMap.get(uniqueId);
-
             if (!world.equals(playerData.getLocations()[0].getWorld())) {
                 // Detected a world change.
                 // We need the player's current location to construct a new player data instance.
@@ -130,7 +130,8 @@ public class DuplexHandlerImpl extends DuplexHandler {
             playerData.getChunks().put(chunkBlocks.getKey(), chunkBlocks);
         } else if (msg instanceof ClientboundForgetLevelChunkPacket packet) {
             // Note that chunk unload packets aren't sent on world change and on respawn.
-            // World changes are already handled below.
+            // World changes are already handled above.
+            // Technically removing chunks isn't necessary since we're using a weak reference to the chunk.
             plugin.getPlayerData().get(player.getUniqueId())
                     .getChunks().remove(new LongWrapper(packet.pos().toLong()));
         } else if (msg instanceof ClientboundRespawnPacket) {
