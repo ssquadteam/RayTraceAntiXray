@@ -215,7 +215,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
             getPlayerData().put(bp.getUniqueId(), data);
 
             ServerPlayer p = ((CraftPlayer) bp).getHandle();
-            var playerChunkManager = p.serverLevel().moonrise$getPlayerChunkLoader();
+            var playerChunkManager = p.level().moonrise$getPlayerChunkLoader();
             playerChunkManager.removePlayer(p);
             playerChunkManager.addPlayer(p);
         }
