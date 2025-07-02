@@ -4,6 +4,7 @@ import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.PlayerData;
 import com.vanillage.raytraceantixray.tasks.UpdateBukkitRunnable;
 import com.vanillage.raytraceantixray.util.BukkitUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -33,6 +34,7 @@ public final class PlayerListener implements Listener {
             }
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Exception raised while creating data for \"" + player + "\" during player join", e);
+            player.kick(Component.text("RayTraceAntiXray encountered an error for your connection, please contact server administrators: " + e.getMessage()));
         }
     }
 
