@@ -32,9 +32,13 @@ public final class PlayerListener implements Listener {
             if (BukkitUtil.IS_FOLIA) {
                 event.getPlayer().getScheduler().runAtFixedRate(plugin, new UpdateBukkitRunnable(plugin, event.getPlayer()), null, 1L, plugin.getUpdateTicks());
             }
-        } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Exception raised while creating data for \"" + player + "\" during player join", e);
-            player.kick(Component.text("RayTraceAntiXray encountered an error for your connection, please contact server administrators: " + e.getMessage()));
+        } catch (Throwable t) {
+            player.kick(Component.text("RayTraceAntiXray encountered an error for your connection, please contact server administrators: " + t.getMessage()));
+            if (t instanceof Exception) {
+                plugin.getLogger().log(Level.SEVERE, "Exception raised while creating data for \"" + player + "\" during player join", t);
+            } else {
+                throw t;
+            }
         }
     }
 
