@@ -4,8 +4,6 @@ import com.vanillage.raytraceantixray.RayTraceAntiXray;
 import com.vanillage.raytraceantixray.data.ChunkBlocks;
 import com.vanillage.raytraceantixray.data.LongWrapper;
 import com.vanillage.raytraceantixray.data.PlayerData;
-import com.vanillage.raytraceantixray.data.VectorialLocation;
-import com.vanillage.raytraceantixray.tasks.RayTraceCallable;
 import com.vanillage.raytraceantixray.util.DuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -21,14 +19,14 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
-public class DuplexHandlerImpl extends DuplexHandler {
+public class DuplexPacketHandler extends DuplexHandler {
 
     public static final String NAME = "com.vanillage.raytraceantixray:duplex_handler";
 
     private final RayTraceAntiXray plugin;
     private final Player player;
 
-    public DuplexHandlerImpl(RayTraceAntiXray plugin, Player player) {
+    public DuplexPacketHandler(RayTraceAntiXray plugin, Player player) {
         super(NAME);
         this.plugin = plugin;
         this.player = player;
@@ -70,16 +68,14 @@ public class DuplexHandlerImpl extends DuplexHandler {
                 // Thus we use the player's current (more up to date) world instead.
                 Location location = player.getEyeLocation();
                 ConcurrentMap<UUID, PlayerData> playerDataMap = plugin.getPlayerData();
-                UUID uniqueId = player.getUniqueId();
-                PlayerData playerData = playerDataMap.get(uniqueId);
+                PlayerData playerData = playerDataMap.get(player.getUniqueId());
 
                 if (!location.getWorld().equals(playerData.getLocations()[0].getWorld())) {
                     // Detected a world change.
                     // In the event order listing above, this corresponds to (4) when RayTraceAntiXray is disabled in world B.
                     // The player's current world is world B since (2).
-                    playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(location)));
-                    playerData.setCallable(new RayTraceCallable(plugin, playerData));
-                    playerDataMap.put(uniqueId, playerData);
+                    // this shouldn't raise an exception as the handler is already created (we are the handler)
+                    plugin.createDataForNoValidate(player, location);
                 }
 
                 return true;
@@ -120,9 +116,7 @@ public class DuplexHandlerImpl extends DuplexHandler {
                 }
 
                 // Renew the player data instance.
-                playerData = new PlayerData(RayTraceAntiXray.getLocations(player, new VectorialLocation(location)));
-                playerData.setCallable(new RayTraceCallable(plugin, playerData));
-                playerDataMap.put(uniqueId, playerData);
+                plugin.createDataForNoValidate(player, location);
             }
 
             // We need to copy the chunk blocks because the same chunk packet could have been sent to multiple players.
