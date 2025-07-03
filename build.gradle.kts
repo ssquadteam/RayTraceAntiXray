@@ -9,23 +9,16 @@ description = "RayTraceAntiXray"
 java.sourceCompatibility = JavaVersion.VERSION_21
 
 repositories {
-    mavenCentral()
     mavenLocal()
-    maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
-    maven { url = uri("https://repo.papermc.io/repository/maven-snapshots/") }
-    maven { url = uri("https://hub.spigotmc.org/nexus/content/groups/public/") }
-    maven { url = uri("https://libraries.minecraft.net/") }
-    //maven { url = uri("https://repo.dmulloy2.net/repository/public/") }
-    maven { url = uri("https://repo.maven.apache.org/maven2/") }
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.papermc.io/repository/maven-snapshots/")
 }
 
 dependencies {
     paperweight.paperDevBundle("1.21.7-R0.1-SNAPSHOT")
 
-    compileOnly("io.papermc.paper:paper-api:1.21.6-R0.1-SNAPSHOT")
-    //compileOnly("io.papermc.paper:paper-mojangapi:1.21-R0.1-SNAPSHOT")
-    compileOnly("com.mojang:datafixerupper:5.0.28")
-    //compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
+    compileOnly("io.papermc.paper:paper-api:1.21.7-R0.1-SNAPSHOT")
 }
 
 java {
