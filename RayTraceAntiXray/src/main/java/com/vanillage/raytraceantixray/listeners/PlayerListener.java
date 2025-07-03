@@ -26,7 +26,7 @@ public final class PlayerListener implements Listener {
         Player player = event.getPlayer();
 
         try {
-            if (!plugin.createDataFor(player))
+            if (plugin.tryCreatePlayerDataFor(player) == null)
                 return;
 
             if (BukkitUtil.IS_FOLIA) {

@@ -75,7 +75,7 @@ public class DuplexPacketHandler extends DuplexHandler {
                     // In the event order listing above, this corresponds to (4) when RayTraceAntiXray is disabled in world B.
                     // The player's current world is world B since (2).
                     // this shouldn't raise an exception as the handler is already created (we are the handler)
-                    plugin.createDataForNoValidate(player, location);
+                    plugin.createPlayerDataFor(player, location);
                 }
 
                 return true;
@@ -116,7 +116,7 @@ public class DuplexPacketHandler extends DuplexHandler {
                 }
 
                 // Renew the player data instance.
-                plugin.createDataForNoValidate(player, location);
+                playerData = plugin.createPlayerDataFor(player, location);
             }
 
             // We need to copy the chunk blocks because the same chunk packet could have been sent to multiple players.

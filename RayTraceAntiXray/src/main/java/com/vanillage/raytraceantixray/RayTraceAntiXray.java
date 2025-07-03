@@ -93,7 +93,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
             WorldListener.handleLoad(this, w);
         for (Player player : Bukkit.getOnlinePlayers()) {
             try {
-                createDataFor(player);
+                tryCreatePlayerDataFor(player);
             } catch (Exception e) {
                 getLogger().log(Level.SEVERE, "Exception raised while creating data for \"" + player + "\" during plugin load", e);
             }
@@ -209,7 +209,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
     public void reloadChunks(Iterable<Player> players) {
         for (Player bp : players) {
             try {
-                if (!createDataFor(bp))
+                if (tryCreatePlayerDataFor(bp) == null)
                     continue;
 
                 ServerPlayer sp = ((CraftPlayer) bp).getHandle();
@@ -265,14 +265,14 @@ public final class RayTraceAntiXray extends JavaPlugin {
         return !player.hasMetadata("NPC");
     }
 
-    public boolean createDataFor(Player player) {
+    public PlayerData tryCreatePlayerDataFor(Player player) {
         if (!validatePlayer(player))
-            return false;
+            return null;
 
-        return createDataForNoValidate(player, player.getEyeLocation());
+        return createPlayerDataFor(player, player.getEyeLocation());
     }
 
-    public boolean createDataForNoValidate(Player player, Location location) {
+    public PlayerData createPlayerDataFor(Player player, Location location) {
         PlayerData playerData = new PlayerData(getLocations(player, new VectorialLocation(location)));
         playerData.setCallable(new RayTraceCallable(this, playerData));
 
@@ -293,7 +293,7 @@ public final class RayTraceAntiXray extends JavaPlugin {
 
         getPlayerData().put(player.getUniqueId(), playerData);
 
-        return true;
+        return playerData;
     }
 
     public static VectorialLocation[] getLocations(Entity entity, VectorialLocation location) {
