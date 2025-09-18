@@ -13,11 +13,21 @@ repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://repo.papermc.io/repository/maven-snapshots/")
+    maven("https://oss.sonatype.org/content/groups/public/") // Kyori repository
+}
+
+configurations.all {
+    resolutionStrategy.cacheDynamicVersionsFor(10, "minutes")
 }
 
 dependencies {
     paperweight.paperDevBundle("1.21.8-R0.1-SNAPSHOT")
-
+    implementation("net.kyori:adventure-api:4.17.0")
+    implementation("net.kyori:adventure-text-serializer-gson:4.17.0")
+    implementation("net.kyori:adventure-text-serializer-legacy:4.17.0")
+    implementation("net.kyori:adventure-text-serializer-plain:4.17.0")
+    implementation("net.kyori:adventure-text-serializer-ansi:4.17.0")
+    
     compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
 }
 
