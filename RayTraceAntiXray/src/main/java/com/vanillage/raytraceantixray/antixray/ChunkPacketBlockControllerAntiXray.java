@@ -72,7 +72,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     private final LevelChunkSection[] emptyNearbyChunkSections = {EMPTY_SECTION, EMPTY_SECTION, EMPTY_SECTION, EMPTY_SECTION};
     private final int maxBlockHeightUpdatePosition;
 
-    public ChunkPacketBlockControllerAntiXray(RayTraceAntiXray plugin, ChunkPacketBlockController oldController, boolean rayTraceThirdPerson, double rayTraceDistance, boolean rehideBlocks, double rehideDistance, int maxRayTraceBlockCountPerChunk, Iterable<? extends String> toTrace, Level level, Executor executor) {
+    public ChunkPacketBlockControllerAntiXray(RayTraceAntiXray plugin, ChunkPacketBlockController oldController, boolean rayTraceThirdPerson, double rayTraceDistance, boolean rehideBlocks, double rehideDistance, int maxRayTraceBlockCountPerChunk, Iterable<? extends String> toTrace, boolean traceCaveAir, Level level, Executor executor) {
         this.plugin = plugin;
         this.oldController = oldController;
         this.executor = executor;
@@ -151,6 +151,21 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
         } else {
             traceGlobal = new boolean[Block.BLOCK_STATE_REGISTRY.size()];
 
+            if (traceCaveAir) {
+                ResourceLocation caveAirId = ResourceLocation.tryParse("minecraft:cave_air");
+                if (caveAirId != null) {
+                    Block caveAir = BuiltInRegistries.BLOCK.getOptional(caveAirId).orElse(null);
+                    if (caveAir != null && caveAir != Blocks.AIR) {
+                        for (BlockState blockState : caveAir.getStateDefinition().getPossibleStates()) {
+                            int blockStateId = GLOBAL_BLOCKSTATE_PALETTE.idFor(blockState);
+                            traceGlobal[blockStateId] = true;
+                            obfuscateGlobal[blockStateId] = true;
+                            solidGlobal[blockStateId] = false;
+                        }
+                    }
+                }
+            }
+
             for (String id : toTrace) {
                 Block block = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.parse(id)).orElse(null);
 
@@ -180,6 +195,21 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
                     && blockState.getBlock() != Blocks.SPAWNER && blockState.getBlock() != Blocks.BARRIER && blockState.getBlock() != Blocks.SHULKER_BOX && blockState.getBlock() != Blocks.SLIME_BLOCK && blockState.getBlock() != Blocks.MANGROVE_ROOTS || paperWorldConfig.lavaObscures && blockState == Blocks.LAVA.defaultBlockState();
                 // Comparing blockState == Blocks.LAVA.defaultBlockState() instead of blockState.getBlock() == Blocks.LAVA ensures that only "stationary lava" is used
                 // shulker box checks TE.
+            }
+        }
+
+        if (traceCaveAir) {
+            ResourceLocation caveAirId = ResourceLocation.tryParse("minecraft:cave_air");
+            if (caveAirId != null) {
+                Block caveAir = BuiltInRegistries.BLOCK.getOptional(caveAirId).orElse(null);
+                if (caveAir != null) {
+                    for (BlockState blockState : caveAir.getStateDefinition().getPossibleStates()) {
+                        int blockStateId = GLOBAL_BLOCKSTATE_PALETTE.idFor(blockState);
+                        solidGlobal[blockStateId] = false;
+                        traceGlobal[blockStateId] = true;
+                        obfuscateGlobal[blockStateId] = true;
+                    }
+                }
             }
         }
 

@@ -46,8 +46,14 @@ public final class WorldListener implements Listener {
             double rehideDistance = Math.max(config.getDouble("world-settings." + worldName + ".anti-xray.rehide-distance", config.getDouble("world-settings.default.anti-xray.rehide-distance")), 0.);
             int maxRayTraceBlockCountPerChunk = Math.max(config.getInt("world-settings." + worldName + ".anti-xray.max-ray-trace-block-count-per-chunk", config.getInt("world-settings.default.anti-xray.max-ray-trace-block-count-per-chunk")), 0);
             List<String> rayTraceBlocks = config.getList("world-settings." + worldName + ".anti-xray.ray-trace-blocks", config.getList("world-settings.default.anti-xray.ray-trace-blocks")).stream().filter(Objects::nonNull).map(String::valueOf).collect(Collectors.toList());
+            boolean traceCaveAir = config.getBoolean("world-settings." + worldName + ".anti-xray.trace-cave-air", config.getBoolean("world-settings.default.anti-xray.trace-cave-air"));
+            
+            if (traceCaveAir) {
+                plugin.getLogger().warning("trace-cave-air is enabled for world " + worldName + ". Note: For best results, also enable ray-trace-third-person.");
+            }
+            
             ServerLevel serverLevel = ((CraftWorld) world).getHandle();
-            ChunkPacketBlockControllerAntiXray controller = new ChunkPacketBlockControllerAntiXray(plugin, ((CraftWorld) world).getHandle().chunkPacketBlockController, rayTraceThirdPerson, rayTraceDistance, rehideBlocks, rehideDistance, maxRayTraceBlockCountPerChunk, rayTraceBlocks.isEmpty() ? null : rayTraceBlocks, serverLevel, MinecraftServer.getServer().executor);
+            ChunkPacketBlockControllerAntiXray controller = new ChunkPacketBlockControllerAntiXray(plugin, ((CraftWorld) world).getHandle().chunkPacketBlockController, rayTraceThirdPerson, rayTraceDistance, rehideBlocks, rehideDistance, maxRayTraceBlockCountPerChunk, rayTraceBlocks.isEmpty() ? null : rayTraceBlocks, traceCaveAir, serverLevel, MinecraftServer.getServer().executor);
 
             try {
                 Field field = Level.class.getDeclaredField("chunkPacketBlockController");

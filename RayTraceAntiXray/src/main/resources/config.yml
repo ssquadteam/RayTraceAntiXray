@@ -47,3 +47,5 @@ world-settings:
       rehide-blocks: false
       rehide-distance: .inf
       ray-trace-blocks: []
+      # WARNING: Enabling trace-cave-air can have significant performance impact and is not recommended without also enabling ray-trace-third-person
+      trace-cave-air: false
